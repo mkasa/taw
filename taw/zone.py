@@ -59,13 +59,48 @@ def add_zonecmd(params, zonename, name, type_str, values, ttl, weight):
     change_info = result['ChangeInfo']
     print("ID: %s, Status: %s" % (change_info['Id'], change_info['Status']))
 
-@zone_group.command("delete")
+@zone_group.command("name")
 @click.argument('zonename', metavar='<zone name)>')
 @click.argument('name', metavar='<subdomain name>')
-@click.argument('type_str', metavar='<A|NS|TXT|...>')
+@click.argument('instancename', metavar='<instance name (or ID)>')
+@click.option('--ttl', metavar='TTL', type=int, default=3600)
+@click.option('--weight', type=int, default=100)
+@pass_global_parameters
+def name_zonecmd(params, zonename, name, instancename, ttl, weight):
+    """ add an A record to the specified zone for a given EC2 instance """
+    instance = convert_host_name_to_instance(instancename)
+    if instance.public_ip_address == None:
+        error_exit("The instance '%s' (%s) has no public IP address" % (extract_name_from_tags(instance.tags), instance.id))
+    values = [instance.public_ip_address]
+    r53 = get_r53_connection()
+    zone_id = convert_zone_name_to_zone_id(zonename)
+    name = complete_subdomain_name(name, zonename)
+    resource_record_set = {
+        'Name': name,
+        'Type': 'A',
+        'TTL': ttl,
+        'ResourceRecords': [ {'Value': v } for v in list(values)],
+    }
+    result = r53.change_resource_record_sets(
+        HostedZoneId=zone_id,
+        ChangeBatch={
+            'Comment': 'taw.py',
+            'Changes': [ {
+                    'Action': 'UPSERT',
+                    'ResourceRecordSet': resource_record_set,
+            } ]
+        }
+    )
+    change_info = result['ChangeInfo']
+    print("ID: %s, Status: %s" % (change_info['Id'], change_info['Status']))
+
+@zone_group.command("rm")
+@click.argument('zonename', metavar='<zone name)>')
+@click.argument('name', metavar='<subdomain name>')
+@click.argument('type_str', default='A', metavar='[A(default)|NS|TXT|...]')
 @click.option('--force', is_flag=True, help='actually delete a record')
 @pass_global_parameters
-def delete_zonecmd(params, zonename, name, type_str, force):
+def rm_zonecmd(params, zonename, name, type_str, force):
     """ delete a record from zone """
     r53 = get_r53_connection()
     zone_id = convert_zone_name_to_zone_id(zonename)
