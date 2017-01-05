@@ -76,6 +76,21 @@ def change_instance_type_instancecmd(params, hostname, new_instance_name):
                               Attribute='instanceType',
                               Value=new_instance_name)
 
+@instance_group.command("set_api_termination", short_help='allow/disallow API termination')
+@click.argument('hostname', metavar='<host name>')
+@click.option('--allow', is_flag=True, help="allow API termination")
+@click.option('--disallow', is_flag=True, help="disallow API termination")
+@pass_global_parameters
+def set_api_termination_instancecmd(params, hostname, allow, disallow):
+    """ change the permission for API termination.
+        Either --allow or --disallow must be given.
+    """
+    if allow and disallow: error_exit("You can't give both --allow and --disallow")
+    if not allow and not disallow: error_exit("You must give either --allow or --disallow")
+    instance = convert_host_name_to_instance(hostname)
+    instance.modify_attribute(DryRun=params.aws_dryrun,
+                              Attribute='disableApiTermination',
+                              Value='False' if allow else 'True')
 
 def ask_instance_name_interactively(ctx, params, name):
     if name == None:
