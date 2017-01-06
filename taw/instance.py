@@ -522,3 +522,9 @@ def list_instancecmd(ctx, args):
     """ list instances """
     with taw.make_context('taw', ctx.obj.global_opt_str + ['list', 'instance'] + list(args)) as ncon: _ = taw.invoke(ncon)
 
+@instance_group.command("showprice", add_help_option=False, context_settings=dict(ignore_unknown_options=True))
+@click.argument('args', nargs=-1, type=click.UNPROCESSED)
+@click.pass_context
+def list_instancecmd(ctx, args):
+    """ list the price for each instance type """
+    with taw.make_context('taw', ctx.obj.global_opt_str + ['list', 'price'] + list(args)) as ncon: _ = taw.invoke(ncon)

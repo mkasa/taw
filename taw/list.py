@@ -520,6 +520,14 @@ def list_cmd(params, restype, verbose, argdoc, attr, subargs, allregions):
         output_table(params, header, rows)
         conn.close()
 
+    def list_instance_price(dummy_arg):
+        """ list the instance prices.
+            How to calculate the instance prices is really complicated so
+            I just decided to use the existing web service, ec2pricing.
+            It displays the price for each instance. It calculates spot prices, too.
+        """
+        click.launch('http://ec2pricing.net/')
+
     def list_test():
         """ test function. (can be eliminated) """
         output_table(params, ["c1", "c2", "c3", "l"*100], [
@@ -542,6 +550,7 @@ def list_cmd(params, restype, verbose, argdoc, attr, subargs, allregions):
         'az'             : list_availability_zones,
         'ip'             : list_elastic_ip,
         'market'         : list_market_ami,
+        'price'          : list_instance_price,
         }
     if allregions:
         s = boto3.session.Session()
