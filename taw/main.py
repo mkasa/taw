@@ -14,6 +14,7 @@ import taw.subnet
 import taw.list
 import taw.sg
 import taw.keypair
+import taw.ip
 from taw.taw import * # This must be the end of imports
 
 # commands/subcommands
