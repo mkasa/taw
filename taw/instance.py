@@ -152,7 +152,7 @@ def ask_ami_id_interactively(ctx, params, ami_id):
     db_path = get_AMI_DB_file_path()
     conn = sqlite3.connect(db_path)
     completion_candidates = [sql_row[0] for sql_row in conn.execute("SELECT * FROM ami_ids;")]
-    if ami_id == None and len(complete_subdomain_name) <= 0:
+    if ami_id == None and len(completion_candidates) <= 0:
         error_exit("You have to register AMI ID first. Type 'taw instance register_market_ami'.\nAlternatively you can directly specify an AMI ID if you know one.")
     completer = PrefixCompleter(completion_candidates); readline.set_completer(completer.completer)
     if ami_id == None:
