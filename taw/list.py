@@ -472,9 +472,9 @@ def list_cmd(params, restype, verbose, argdoc, attr, subargs, allregions):
     def list_elastic_ip(dummy_arg):
         """ list all elastic IPs """
         ec2 = get_ec2_connection()
-        header = ['Allocation ID', 'Public IP', 'Domain', 'Instance ID', 'Private IP', 'Network Interface ID']; rows = []
+        header = ['Allocation ID', 'Association ID', 'Public IP', 'Domain', 'Instance ID', 'Private IP', 'Network Interface ID']; rows = []
         for i in ec2.vpc_addresses.all():
-            row = [i.allocation_id, i.public_ip, i.domain, i.instance_id, i.private_ip_address, i.network_interface_id]
+            row = [i.allocation_id, i.association_id, i.public_ip, i.domain, i.instance_id, i.private_ip_address, i.network_interface_id]
             rows.append(row)
         output_table(params, header, rows)
 

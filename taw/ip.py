@@ -44,6 +44,30 @@ def create_ipcmd(params):
     print("Public IP:", addr['PublicIp'])
     print("Allocation ID:", addr['AllocationId'])
 
+@ip_group.command("associate")
+@click.argument('eip_id')
+@click.argument('hostname')
+@pass_global_parameters
+def associate_ipcmd(params, eip_id, hostname):
+    """ associate an elastic IP with the specified instance """
+    ec2 = get_ec2_connection()
+    eips = list(ec2.vpc_addresses.filter(Filters=[{'Name': 'allocation-id', 'Values': [eip_id]}]))
+    if len(eips) <= 0: error_exit("No such allocation ID ('%s')" % eip_id)
+    instance = convert_host_name_to_instance(hostname)
+    ec2_client = get_ec2_client()
+    addr = ec2_client.associate_address(InstanceId=instance.id, AllocationId=eip_id)
+
+@ip_group.command("disassociate")
+@click.argument('association_id')
+@pass_global_parameters
+def associate_ipcmd(params, association_id):
+    """ associate an elastic IP with the specified instance """
+    ec2 = get_ec2_connection()
+    eips = list(ec2.vpc_addresses.filter(Filters=[{'Name': 'association-id', 'Values': [association_id]}]))
+    if len(eips) <= 0: error_exit("No such association ID ('%s')" % association_id)
+    ec2_client = get_ec2_client()
+    addr = ec2_client.disassociate_address(AssociationId=association_id)
+
 @ip_group.command("list", add_help_option=False, context_settings=dict(ignore_unknown_options=True))
 @click.argument('args', nargs=-1, type=click.UNPROCESSED)
 @click.pass_context
