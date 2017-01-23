@@ -92,6 +92,22 @@ def set_api_termination_instancecmd(params, hostname, allow, disallow):
                               Attribute='disableApiTermination',
                               Value='False' if allow else 'True')
 
+@instance_group.command("set_ebs_optimization", short_help='enable/disable EBS optimization')
+@click.option('--on', is_flag=True, help="turn on EBS optimization")
+@click.option('--off', is_flag=True, help="turn off EBS optimization")
+@click.argument('hostname', metavar='<host name>')
+@pass_global_parameters
+def set_ebs_optimization_instancecmd(params, hostname, on, off):
+    """ enable/disable the EBS optimization for a given instance
+        Either --on or --off must be given
+        """
+    if on and off: error_exit("You can't give both --on and --off")
+    if not on and not off: error_exit("You must give either --on or --off")
+    instance = convert_host_name_to_instance(hostname)
+    instance.modify_attribute(DryRun=params.aws_dryrun,
+                              Attribute='ebsOptimized',
+                              Value='False' if off else 'True')
+
 def ask_instance_name_interactively(ctx, params, name):
     if name == None:
         print("")
