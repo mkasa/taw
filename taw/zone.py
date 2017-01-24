@@ -62,25 +62,47 @@ def add_zonecmd(params, zonename, name, type_str, values, ttl, weight):
 @zone_group.command("name")
 @click.argument('zonename', metavar='<zone name)>')
 @click.argument('name', metavar='<subdomain name>')
-@click.argument('instancename', metavar='<instance name (or ID)>')
+@click.argument('targetname', metavar='<instance name|instance ID|bucket name:>')
 @click.option('--ttl', metavar='TTL', type=int, default=3600)
 @click.option('--weight', type=int, default=100)
 @pass_global_parameters
-def name_zonecmd(params, zonename, name, instancename, ttl, weight):
-    """ add an A record to the specified zone for a given EC2 instance """
-    instance = convert_host_name_to_instance(instancename)
-    if instance.public_ip_address == None:
-        error_exit("The instance '%s' (%s) has no public IP address" % (extract_name_from_tags(instance.tags), instance.id))
-    values = [instance.public_ip_address]
+def name_zonecmd(params, zonename, name, targetname, ttl, weight):
+    """ add an A record to the specified zone for a given EC2 instance or a given bucket.
+
+        \b
+        eg) Give an A record of 'db.example.com' for an instance with name 'db003'.
+            taw name example.com db db003
+        eg) Give a CNAME record of S3 Bucket 'static.example.com' for an S3 Bucket 'static.example.com'
+            taw name example.com static static.example.com:
+        """
     r53 = get_r53_connection()
     zone_id = convert_zone_name_to_zone_id(zonename)
     name = complete_subdomain_name(name, zonename)
-    resource_record_set = {
-        'Name': name,
-        'Type': 'A',
-        'TTL': ttl,
-        'ResourceRecords': [ {'Value': v } for v in list(values)],
-    }
+    if targetname.endswith(":"):
+        s3 = get_s3_connection()
+        bucket_name = targetname[:-1]
+        region_name_of_the_bucket = s3.meta.client.get_bucket_location(Bucket=bucket_name)["LocationConstraint"]
+        # see http://docs.aws.amazon.com/AmazonS3/latest/dev/WebsiteEndpoints.html
+        endpoint_url_domain = bucket_name + ".s3-website-" + region_name_of_the_bucket + ".amazonaws.com"
+        if bucket_name != name[:-1]:
+            error_exit("The bucket name (%s) must be the same as the (sub)domain name (%s).\nThis is a requirement by Amazon S3." % (bucket_name, name[:-1]))
+        resource_record_set = {
+            'Name': name,
+            'Type': 'CNAME',
+            'TTL': ttl,
+            'ResourceRecords': [ {'Value': endpoint_url_domain } ],
+        }
+    else:
+        instance = convert_host_name_to_instance(targetname)
+        if instance.public_ip_address == None:
+            error_exit("The instance '%s' (%s) has no public IP address" % (extract_name_from_tags(instance.tags), instance.id))
+        values = [instance.public_ip_address]
+        resource_record_set = {
+            'Name': name,
+            'Type': 'A',
+            'TTL': ttl,
+            'ResourceRecords': [ {'Value': v } for v in list(values)],
+        }
     result = r53.change_resource_record_sets(
         HostedZoneId=zone_id,
         ChangeBatch={
