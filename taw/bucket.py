@@ -119,8 +119,9 @@ def rmbucket_bucketcmd(params, bucketname, force):
 @click.option('--lowaccess', is_flag=True, help="Use IA (Infrequent Access) storage class")
 @click.option('--contenttype', help='Specify the content type if needed')
 @click.option('--overwritecontenttype', is_flag=True, help='Overwrite content types when you copy remote to remote')
+@click.option('--permission', help='ACL String (one of private, public-read)')
 @pass_global_parameters
-def cp_bucketcmd(params, src, dst, reduced, lowaccess, contenttype, overwritecontenttype):
+def cp_bucketcmd(params, src, dst, reduced, lowaccess, contenttype, overwritecontenttype, permission):
     """ copy to/from a specified bucket """
     if reduced and lowaccess:
         error_exit("You cannot specify both --reduced and --lowaccess")
@@ -146,11 +147,15 @@ def cp_bucketcmd(params, src, dst, reduced, lowaccess, contenttype, overwritecon
                     else:
                         dest_key_name = dest_path
                 any_file_is_copied = True
-                content_type = get_default_content_type(dest_key_name)
-                if is_debugging: print("%s to [%s]:%s (TYPE: %s)" % (fn, dest_bucket, dest_key_name, content_type), file=sys.stderr)
+                if contenttype:
+                    content_type_for_this_file = contenttype
+                else:
+                    content_type_for_this_file = get_default_content_type(dest_key_name)
+                if is_debugging: print("%s to [%s]:%s (TYPE: %s)" % (fn, dest_bucket, dest_key_name, content_type_for_this_file), file=sys.stderr)
                 bucket.Object(dest_key_name).put(Body=open(fn, 'rb').read(),
                                                  StorageClass=storage_class,
-                                                 ContentType=content_type)
+                                                 ContentType=content_type_for_this_file,
+                                                 ACL=permission)
         else:
             if dest_bucket == None:
                 # Remote to local
@@ -180,11 +185,16 @@ def cp_bucketcmd(params, src, dst, reduced, lowaccess, contenttype, overwritecon
                     if dest_path != '' and 1 < len(matched_objcects):
                         error_exit("You cannot specify the destination name if you specify multiple source files.")
                     for obj in matched_objects:
+                        if contenttype:
+                            content_type_for_this_file = contenttype
+                        else:
+                            content_type_for_this_file = get_default_content_type(obj.key)
                         exargs = {
                                     'StorageClass': storage_class,
                                     'MetadataDirective': 'COPY'
                                  }
-                        if overwritecontenttype: exargs['ContentType'] = get_default_content_type(obj.key)
+                        if permission: exargs['ACL'] = permission
+                        if overwritecontenttype: exargs['ContentType'] = content_type_for_this_file
                         s3_client.copy({'Bucket': src_bucket, 'Key': obj.key},
                                        dest_bucket, obj.key if dest_path == '' else dest_path,
                                        ExtraArgs = exargs)

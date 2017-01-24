@@ -423,6 +423,7 @@ def list_cmd(params, restype, verbose, argdoc, attr, subargs, allregions):
             all_list_columns = [
                     (True , "key"          , "Name"         , ident)                     ,
                     (True , "size"         , "Size"         , ident)                     ,
+                    (False, "Object"       , "Content-Type" , lambda x: x().content_type),
                     (True , "last_modified", "Modified"     , ident)                     ,
                     (True , "owner"        , "Owner"        , lambda x: x['DisplayName']),
                     (False, "owner"        , "Owner ID"     , lambda x: x['ID'])         ,
