@@ -43,6 +43,17 @@ def rssh_cmd(params, hostname, rsshargs):
     ssh_like_call(params, 'rssh', hostname, rsshargs)
 
 # ==============
+#  RSYNC COMMAND
+# ==============
+@taw.command("rsync")
+@click.argument('hostname', metavar='<host name>')
+@click.argument('rsshargs', nargs=-1)
+@pass_global_parameters
+def rsync_cmd(params, hostname, rsshargs):
+    """ do rsync to a specified host """
+    ssh_like_call(params, 'rsync', hostname, rsshargs)
+
+# ==============
 #  SCP COMMAND
 # ==============
 @taw.command("scp")
