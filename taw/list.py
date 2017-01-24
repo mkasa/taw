@@ -364,7 +364,9 @@ def list_cmd(params, restype, verbose, argdoc, attr, subargs, allregions):
             r53 = get_r53_connection()
             header = ['Name', 'Comment', 'IsPrivate', 'RecordSetCount']; rows = []
             for zone in r53.list_hosted_zones()['HostedZones']:
-                row = [zone['Name'], zone['Config']['Comment'], zone['Config']['PrivateZone'], zone['ResourceRecordSetCount']]
+                config = zone['Config']
+                row = [zone['Name'], config['Comment'] if 'Comment' in config else '',
+                       config['PrivateZone'] if 'PrivateZone' in config else '', zone['ResourceRecordSetCount']]
                 rows.append(row)
         output_table(params, header, rows)
 
