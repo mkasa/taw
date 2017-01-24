@@ -46,6 +46,8 @@ def rm_bucketcmd(params, files, force):
 @pass_global_parameters
 def chmod_bucketcmd(params, mode, files, force):
     """ change the permission of a given bucket or given files.
+
+        \b
         eg1) Make a bucket private.
              taw bucket chmod private bucket-name
         eg2) Make a key (file) public (still you need to make the belonging bucket public to actually allow public to read it)
@@ -127,11 +129,11 @@ def cp_bucketcmd(params, src, dst, reduced, lowaccess):
         if src_bucket != None and dest_bucket != None: error_exit("We do not support remote-to-remote copy")
         s3 = get_s3_connection()
         any_file_is_copied = False
+        storage_class = 'STANDARD'
+        if reduced: storage_class = 'REDUCED_REDUNDANCY'
+        if lowaccess: storage_class = 'STANDARD_IA'
         if src_bucket == None:
             # Local to remote
-            storage_class = 'STANDARD'
-            if reduced: storage_class = 'REDUCED_REDUNDANCY'
-            if lowaccess: storage_class = 'STANDARD_IA'
             bucket = s3.Bucket(dest_bucket)
             for fn in glob.glob(os.path.expanduser(src_path)):
                 # TODO: we need to use multipart upload if the size of file fn is large.
@@ -146,21 +148,41 @@ def cp_bucketcmd(params, src, dst, reduced, lowaccess):
                 if is_debugging: print("%s to [%s]:%s" % (fn, dest_bucket, dest_key_name), file=sys.stderr)
                 bucket.Object(dest_key_name).put(Body=open(fn, 'rb').read(), StorageClass=storage_class)
         else:
-            # Remote to local
-            bucket = s3.Bucket(src_bucket)
-            is_local_path_directory = os.path.isdir(dest_path)
-            for obj in bucket.objects.all():
-                if src_path != '' and not fnmatch.fnmatch(obj.key, src_path): continue
-                any_file_is_copied = True
-                # TODO: we need to download partially for large files
-                if is_local_path_directory:
-                    if is_debugging: print("LOCAL FILE=%s" % os.path.basename(obj.key), file=sys.stderr)
-                    with open(os.path.basename(obj.key), "wb") as f:
-                        f.write(obj.get()['Body'].read())
-                else:
-                    if is_debugging: print("LOCAL FILE=%s" % dest_path, file=sys.stderr)
-                    with open(dest_path, "wb") as f:
-                        f.write(obj.get()['Body'].read())
+            if dest_bucket == None:
+                # Remote to local
+                bucket = s3.Bucket(src_bucket)
+                is_local_path_directory = os.path.isdir(dest_path)
+                for obj in bucket.objects.all():
+                    if src_path != '' and not fnmatch.fnmatch(obj.key, src_path): continue
+                    any_file_is_copied = True
+                    # TODO: we need to download partially for large files
+                    if is_local_path_directory:
+                        if is_debugging: print("LOCAL FILE=%s" % os.path.basename(obj.key), file=sys.stderr)
+                        with open(os.path.basename(obj.key), "wb") as f:
+                            f.write(obj.get()['Body'].read())
+                    else:
+                        if is_debugging: print("LOCAL FILE=%s" % dest_path, file=sys.stderr)
+                        with open(dest_path, "wb") as f:
+                            f.write(obj.get()['Body'].read())
+            else:
+                # Remote to remote
+                bucket = s3.Bucket(src_bucket)
+                matched_objects = []
+                for obj in bucket.objects.all():
+                    if src_path != '' and not fnmatch.fnmatch(obj.key, src_path): continue
+                    matched_objects.append(obj)
+                if 0 < len(matched_objects):
+                    if dest_path != '' and 1 < len(matched_objcects):
+                        error_exit("You cannot specify the destination name if you specify multiple source files.")
+                    for obj in matched_objects:
+                        s3.copy({'Bucket': src_bucket, 'Key': obj.key},
+                                dest_bucket, obj.key if dest_path == '' else dest_path,
+                                ExtraArgs = {
+                                    'StorageClass': storage_class,
+                                    'MetadataDirective': 'COPY'
+                                })
+                        any_file_is_copied = True
+                    error_exit("Remote to remote copy is not yet implemented")
         if not any_file_is_copied:
             error_exit("No file matched")
 
