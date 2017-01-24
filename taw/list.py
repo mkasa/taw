@@ -413,8 +413,12 @@ def list_cmd(params, restype, verbose, argdoc, attr, subargs, allregions):
         page_size = 2048
         if 0 < len(bucket_name_if_any):
             """ list a specified bucket """
-            bucket_name = bucket_name_if_any[0]
+            _, bucket_name, bucket_path = decompose_rpath(bucket_name_if_any[0])
             key_search_regex_if_any = bucket_name_if_any[1] if 1 < len(bucket_name_if_any) else None
+            if bucket_name == None:
+                bucket_name = bucket_path
+            else:
+                key_search_regex_if_any = bucket_path
             if is_debugging: print("Key pattern = '%s'" % key_search_regex_if_any, file=sys.stderr)
             all_list_columns = [
                     (True , "key"          , "Name"         , ident)                     ,
