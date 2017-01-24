@@ -588,6 +588,8 @@ def decompose_rpath(rpath):
     """ decompose an SCP-style path into components.
         eg) decompose_rpath("user@host.example.com:/path/foo") -> ('user', 'host.example.com', '/path/foo')
             decompose_rpath("/abc/def") -> (None, None, '/abc/def')
+        Note that the first and the second return values might be None
+        but the the third argument will never be None (could be '', though).
     """
     r = re.match(r'^(((.*?)@)?(.*?):)?(.*)$', rpath)
     return (r.group(3), r.group(4), r.group(5))
