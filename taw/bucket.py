@@ -125,6 +125,7 @@ def cp_bucketcmd(params, src, dst, reduced, lowaccess, contenttype, overwritecon
     """ copy to/from a specified bucket """
     if reduced and lowaccess:
         error_exit("You cannot specify both --reduced and --lowaccess")
+    if contenttype: overwritecontenttype = True
     storage_class = 'STANDARD'
     if reduced: storage_class = 'REDUCED_REDUNDANCY'
     if lowaccess: storage_class = 'STANDARD_IA'
@@ -194,7 +195,9 @@ def cp_bucketcmd(params, src, dst, reduced, lowaccess, contenttype, overwritecon
                                     'MetadataDirective': 'COPY'
                                  }
                         if permission: exargs['ACL'] = permission
-                        if overwritecontenttype: exargs['ContentType'] = content_type_for_this_file
+                        if overwritecontenttype:
+                            exargs['MetadataDirective'] = 'REPLACE'
+                            exargs['ContentType'] = content_type_for_this_file
                         s3_client.copy({'Bucket': src_bucket, 'Key': obj.key},
                                        dest_bucket, obj.key if dest_path == '' else dest_path,
                                        ExtraArgs = exargs)
