@@ -118,9 +118,9 @@ def rmbucket_bucketcmd(params, bucketname, force):
 @click.option('--reduced', is_flag=True, help="Use RRS (reduced redundancy storage) storage class")
 @click.option('--lowaccess', is_flag=True, help="Use IA (Infrequent Access) storage class")
 @click.option('--contenttype', help='Specify the content type if needed')
-@click.option('--overwritectype', help='Overwrite content types when you copy remote to remote')
+@click.option('--overwritecontenttype', is_flag=True, help='Overwrite content types when you copy remote to remote')
 @pass_global_parameters
-def cp_bucketcmd(params, src, dst, reduced, lowaccess, contenttype, overwritectype):
+def cp_bucketcmd(params, src, dst, reduced, lowaccess, contenttype, overwritecontenttype):
     """ copy to/from a specified bucket """
     if reduced and lowaccess:
         error_exit("You cannot specify both --reduced and --lowaccess")
@@ -184,7 +184,7 @@ def cp_bucketcmd(params, src, dst, reduced, lowaccess, contenttype, overwritecty
                                     'StorageClass': storage_class,
                                     'MetadataDirective': 'COPY'
                                  }
-                        if overwritectype: exargs['ContentType'] = get_default_content_type(obj.key)
+                        if overwritecontenttype: exargs['ContentType'] = get_default_content_type(obj.key)
                         s3_client.copy({'Bucket': src_bucket, 'Key': obj.key},
                                        dest_bucket, obj.key if dest_path == '' else dest_path,
                                        ExtraArgs = exargs)
