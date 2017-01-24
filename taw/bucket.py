@@ -137,9 +137,7 @@ def cp_bucketcmd(params, src, dst, reduced, lowaccess, contenttype, overwritecon
         any_file_is_copied = False
         if src_bucket == None:
             # Local to remote
-            bucket = s3.Bucket(dest_bucket)
             for fn in glob.glob(os.path.expanduser(src_path)):
-                # TODO: we need to use multipart upload if the size of file fn is large.
                 if dest_path.endswith('/'):
                     dest_key_name = dest_path + os.path.basename(fn)
                 else:
@@ -153,10 +151,10 @@ def cp_bucketcmd(params, src, dst, reduced, lowaccess, contenttype, overwritecon
                 else:
                     content_type_for_this_file = get_default_content_type(dest_key_name)
                 if is_debugging: print("%s to [%s]:%s (TYPE: %s)" % (fn, dest_bucket, dest_key_name, content_type_for_this_file), file=sys.stderr)
-                bucket.Object(dest_key_name).put(Body=open(fn, 'rb').read(),
-                                                 StorageClass=storage_class,
-                                                 ContentType=content_type_for_this_file,
-                                                 ACL=permission)
+                exargs = { 'StorageClass': storage_class,
+                           'ContentType': content_type_for_this_file,
+                           'ACL': permission }
+                s3.meta.client.upload_file(fn, dest_bucket, dest_key_name, ExtraArgs=exargs)
         else:
             if dest_bucket == None:
                 # Remote to local
@@ -165,15 +163,12 @@ def cp_bucketcmd(params, src, dst, reduced, lowaccess, contenttype, overwritecon
                 for obj in bucket.objects.all():
                     if src_path != '' and not fnmatch.fnmatch(obj.key, src_path): continue
                     any_file_is_copied = True
-                    # TODO: we need to download partially for large files
                     if is_local_path_directory:
-                        if is_debugging: print("LOCAL FILE=%s" % os.path.basename(obj.key), file=sys.stderr)
-                        with open(os.path.basename(obj.key), "wb") as f:
-                            f.write(obj.get()['Body'].read())
+                        if is_debugging: print("LOCAL FILE=%s/" % os.path.basename(obj.key), file=sys.stderr)
+                        s3.meta.client.download_file(src_bucket, obj.key, os.path.join(dest_path, obj.key))
                     else:
                         if is_debugging: print("LOCAL FILE=%s" % dest_path, file=sys.stderr)
-                        with open(dest_path, "wb") as f:
-                            f.write(obj.get()['Body'].read())
+                        s3.meta.client.download_file(src_bucket, obj.key, dest_path)
             else:
                 # Remote to remote
                 s3_client = get_s3_client()
