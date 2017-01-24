@@ -390,7 +390,6 @@ def list_cmd(params, restype, verbose, argdoc, attr, subargs, allregions):
             return "".join(retvals)
         def grants_to_id_to_perm_bits(grants):
             id_to_perm_bits = {}
-            print("grants", grants)
             for gpar in grants:
                 grant = gpar['Grantee']
                 gtype = grant['Type']; perm = gpar['Permission']
