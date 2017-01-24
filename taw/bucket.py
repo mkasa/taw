@@ -83,6 +83,33 @@ def chmod_bucketcmd(params, mode, files, force):
             else:
                 s3.Bucket(bucket).Object(path).Acl().put(ACL=mode)
 
+@bucket_group.command("mkbucket")
+@click.argument('bucketname')
+@pass_global_parameters
+def mkbucket_bucketcmd(params, bucketname, regionname):
+    """ create a bucket.
+        The bucket will be created in a default region unless otherwise specifed by --region option.
+    """
+    s3 = get_s3_connection()
+    s3.create_bucket(Bucket=bucketname, CreateBucketConfiguration= {
+        'LocationConstraint': get_aws_region()
+        })
+
+@bucket_group.command("rmbucket")
+@click.argument('bucketname')
+@click.option('--force', is_flag=True)
+@pass_global_parameters
+def rmbucket_bucketcmd(params, bucketname, force):
+    """ remove a bucket
+    """
+    s3 = get_s3_connection()
+    bucket = s3.Bucket(bucketname)
+    if force:
+        bucket.delete()
+    else:
+        print("It will delete the following bucket. Add --force if you are sure.")
+        print("\t" + bucketname)
+
 @bucket_group.command("cp")
 @click.argument('src', nargs=-1)
 @click.argument('dst', nargs=1)

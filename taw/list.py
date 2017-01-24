@@ -427,7 +427,7 @@ def list_cmd(params, restype, verbose, argdoc, attr, subargs, allregions):
             list_columns = [x for x in all_list_columns if verbose or x[0]]
             for v in attr: list_columns.append((True, v, v, ident))
             header = [x[2] for x in list_columns]; rows = []
-            if verbose: header.append('Permission')
+            if verbose: header += ['Permission']
             if key_search_regex_if_any and re.match(r'[^\*]+\*$', key_search_regex_if_any):
                 if is_debugging: print("Prefix='%s'" % key_search_regex_if_any[:-1], file=sys.stderr)
                 query_object = s3.Bucket(bucket_name).objects.filter(Prefix=key_search_regex_if_any[:-1]).page_size(page_size)
@@ -451,11 +451,18 @@ def list_cmd(params, restype, verbose, argdoc, attr, subargs, allregions):
             list_columns = [x for x in all_list_columns if verbose or x[0]]
             for v in attr: list_columns.append((True, v, v, ident))
             header = [x[2] for x in list_columns]; rows = []; header.append("Permission")
+            if verbose: header += ['Region']
             try:
                 for b in s3.buckets.page_size(page_size):
+                    bucket_name = b.name
                     row = [f(getattr(b, i)) for _, i, _, f in list_columns]
                     id_to_perm_bits = grants_to_id_to_perm_bits(b.Acl().grants)
                     row.append(", ".join([k+"("+perm_bit_to_str(v)+")" for k, v in id_to_perm_bits.items()]))
+                    if verbose:
+                        # NOTE: should do better in the future.
+                        #       see https://github.com/boto/boto3/issues/292
+                        region_name_of_the_bucket = s3.meta.client.get_bucket_location(Bucket=bucket_name)["LocationConstraint"]
+                        row.append(region_name_of_the_bucket)
                     rows.append(row)
             except AttributeError as e:
                 error_exit(str(e) + "\nNo such attribute.\nTry 'taw list --argdoc' to see all attributes.")

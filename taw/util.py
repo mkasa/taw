@@ -180,6 +180,17 @@ region_name_to_region_nickname = {
     }
 region_nickname_to_region_name = dict([(v, k) for k, v in region_name_to_region_nickname.items()])
 
+def normalize_region_name(region_name, error_on_exit=True):
+    """ normalize a given region name.
+        If the given region name is a nickname (eg, oregon), it will be converted to the corresponding region name (eg, us-west-2).
+        If the given region name is an official AWS region name (eg, us-west-2), it will return the name as it is.
+    """
+    if region_name in region_name_to_region_nickname: return region_name
+    if region_name in region_nickname_to_region_name: return region_nickname_to_region_name[region_name]
+    if error_on_exit:
+        error_exit("Region name '%s' is not a region name nor a region nickname" % region_name)
+    return None
+
 instance_type_name_to_instance_type = {
     "t2.nano"        : {"vcpu" :   1, "mem" :  0.5, "desc" :  "3 credit minutes/hour, EBS backend"},
     "t2.micro"       : {"vcpu" :   1, "mem" :    1, "desc" :  "6 credit minutes/hour, EBS backend"},
