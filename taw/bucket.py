@@ -113,9 +113,13 @@ def rmbucket_bucketcmd(params, bucketname, force):
 @bucket_group.command("cp")
 @click.argument('src', nargs=-1)
 @click.argument('dst', nargs=1)
+@click.option('--reduced', is_flag=True, help="Use RRS (reduced redundancy storage) storage class")
+@click.option('--lowaccess', is_flag=True, help="Use IA (Infrequent Access) storage class")
 @pass_global_parameters
-def cp_bucketcmd(params, src, dst):
+def cp_bucketcmd(params, src, dst, reduced, lowaccess):
     """ copy to/from a specified bucket """
+    if reduced and lowaccess:
+        error_exit("You cannot specify both --reduced and --lowaccess")
     for src_file in src:
         _, src_bucket , src_path  = decompose_rpath(src_file)
         _, dest_bucket, dest_path = decompose_rpath(dst)
@@ -125,6 +129,9 @@ def cp_bucketcmd(params, src, dst):
         any_file_is_copied = False
         if src_bucket == None:
             # Local to remote
+            storage_class = 'STANDARD'
+            if reduced: storage_class = 'REDUCED_REDUNDANCY'
+            if lowaccess: storage_class = 'STANDARD_IA'
             bucket = s3.Bucket(dest_bucket)
             for fn in glob.glob(os.path.expanduser(src_path)):
                 # TODO: we need to use multipart upload if the size of file fn is large.
@@ -137,7 +144,7 @@ def cp_bucketcmd(params, src, dst):
                         dest_key_name = dest_path
                 any_file_is_copied = True
                 if is_debugging: print("%s to [%s]:%s" % (fn, dest_bucket, dest_key_name), file=sys.stderr)
-                bucket.Object(dest_key_name).put(Body=open(fn, 'rb').read())
+                bucket.Object(dest_key_name).put(Body=open(fn, 'rb').read(), StorageClass=storage_class)
         else:
             # Remote to local
             bucket = s3.Bucket(src_bucket)
