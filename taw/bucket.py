@@ -117,21 +117,22 @@ def rmbucket_bucketcmd(params, bucketname, force):
 @click.argument('dst', nargs=1)
 @click.option('--reduced', is_flag=True, help="Use RRS (reduced redundancy storage) storage class")
 @click.option('--lowaccess', is_flag=True, help="Use IA (Infrequent Access) storage class")
+@click.option('--contenttype', help='Specify the content type if needed')
+@click.option('--overwritectype', help='Overwrite content types when you copy remote to remote')
 @pass_global_parameters
-def cp_bucketcmd(params, src, dst, reduced, lowaccess):
+def cp_bucketcmd(params, src, dst, reduced, lowaccess, contenttype, overwritectype):
     """ copy to/from a specified bucket """
     if reduced and lowaccess:
         error_exit("You cannot specify both --reduced and --lowaccess")
+    storage_class = 'STANDARD'
+    if reduced: storage_class = 'REDUCED_REDUNDANCY'
+    if lowaccess: storage_class = 'STANDARD_IA'
     for src_file in src:
         _, src_bucket , src_path  = decompose_rpath(src_file)
         _, dest_bucket, dest_path = decompose_rpath(dst)
         if src_bucket == None and dest_bucket == None: error_exit("We do not support local-to-local copy")
-        if src_bucket != None and dest_bucket != None: error_exit("We do not support remote-to-remote copy")
         s3 = get_s3_connection()
         any_file_is_copied = False
-        storage_class = 'STANDARD'
-        if reduced: storage_class = 'REDUCED_REDUNDANCY'
-        if lowaccess: storage_class = 'STANDARD_IA'
         if src_bucket == None:
             # Local to remote
             bucket = s3.Bucket(dest_bucket)
@@ -145,8 +146,11 @@ def cp_bucketcmd(params, src, dst, reduced, lowaccess):
                     else:
                         dest_key_name = dest_path
                 any_file_is_copied = True
-                if is_debugging: print("%s to [%s]:%s" % (fn, dest_bucket, dest_key_name), file=sys.stderr)
-                bucket.Object(dest_key_name).put(Body=open(fn, 'rb').read(), StorageClass=storage_class)
+                content_type = get_default_content_type(dest_key_name)
+                if is_debugging: print("%s to [%s]:%s (TYPE: %s)" % (fn, dest_bucket, dest_key_name, content_type), file=sys.stderr)
+                bucket.Object(dest_key_name).put(Body=open(fn, 'rb').read(),
+                                                 StorageClass=storage_class,
+                                                 ContentType=content_type)
         else:
             if dest_bucket == None:
                 # Remote to local
@@ -166,6 +170,7 @@ def cp_bucketcmd(params, src, dst, reduced, lowaccess):
                             f.write(obj.get()['Body'].read())
             else:
                 # Remote to remote
+                s3_client = get_s3_client()
                 bucket = s3.Bucket(src_bucket)
                 matched_objects = []
                 for obj in bucket.objects.all():
@@ -175,14 +180,15 @@ def cp_bucketcmd(params, src, dst, reduced, lowaccess):
                     if dest_path != '' and 1 < len(matched_objcects):
                         error_exit("You cannot specify the destination name if you specify multiple source files.")
                     for obj in matched_objects:
-                        s3.copy({'Bucket': src_bucket, 'Key': obj.key},
-                                dest_bucket, obj.key if dest_path == '' else dest_path,
-                                ExtraArgs = {
+                        exargs = {
                                     'StorageClass': storage_class,
                                     'MetadataDirective': 'COPY'
-                                })
+                                 }
+                        if overwritectype: exargs['ContentType'] = get_default_content_type(obj.key)
+                        s3_client.copy({'Bucket': src_bucket, 'Key': obj.key},
+                                       dest_bucket, obj.key if dest_path == '' else dest_path,
+                                       ExtraArgs = exargs)
                         any_file_is_copied = True
-                    error_exit("Remote to remote copy is not yet implemented")
         if not any_file_is_copied:
             error_exit("No file matched")
 

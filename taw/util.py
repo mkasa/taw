@@ -2,7 +2,7 @@
 
 from __future__ import print_function
 import os, sys, click
-import subprocess, re, datetime
+import subprocess, re, datetime, mimetypes
 import boto3, botocore
 import tabulate, json, colorama
 import pyperclip, time, sqlite3, pickle, readline
@@ -51,6 +51,14 @@ def get_s3_connection():
     global_s3_connection = boto3.resource('s3', region_name=param_region)
     return global_s3_connection
 
+# S3 client
+global_s3_client = None
+def get_s3_client():
+    global global_s3_client
+    if global_s3_client != None: return global_s3_client
+    global_s3_client = boto3.client('s3', region_name=param_region)
+    return global_s3_client
+
 # Set region
 def set_aws_region(region_name):
     """ set the AWS region.
@@ -61,6 +69,7 @@ def set_aws_region(region_name):
     global global_ec2_connection
     global global_r53_connection
     global global_s3_connection
+    global global_s3_client
     if param_region != region_name:
         param_region = region_name
         if is_debugging: print("AWS DEFAULT REGION WAS SET TO " + region_name, file=sys.stderr)
@@ -68,6 +77,7 @@ def set_aws_region(region_name):
         global_ec2_connection = None
         global_r53_connection = None
         global_s3_connection  = None
+        global_s3_client      = None
 
 def get_aws_region():
     return param_region
@@ -829,3 +839,8 @@ class PrefixCompleter:
         if index < len(fl): return fl[index]
         return None
 
+def get_default_content_type(file_name):
+    """ get the default content type from a given file name """
+    mime_type, compress_type = mimetypes.guess_type(file_name)
+    if mime_type != None: return mime_type
+    return "application/octet-stream"
