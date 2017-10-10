@@ -18,7 +18,7 @@ hard to understand. This design was chosen presumably because the users of
 the command line interface are professional and more familier with
 the system of Amazon EC2. First, CLI provides only a low-level interface
 although the web interface provides higher-level operations for common
-operations. Second, CLI exposes all APIs with all parameters equally.
+operations. Second, CLI exposes all APIs with all parameters in an equal way.
 In other words, new users have no way to guess which API is more common
 than others. Deprecated parameters for compatibility are hidden as
 optional parameters with a reasonable default value in the web
