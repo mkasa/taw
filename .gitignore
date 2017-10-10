@@ -93,3 +93,8 @@ __TagBar__
 
 # pyinstaller
 taw-script.py
+
+# Sphinx
+doc/_build
+doc/_static
+doc/_template
