@@ -2,9 +2,9 @@
 
 from __future__ import print_function
 from __future__ import absolute_import
-import os, sys, click
+import click
 from taw.util import *
-from taw.taw import * # This must be the end of imports
+from taw.taw import *  # This must be the end of imports
 
 # ==============
 #  VPC COMMAND
@@ -58,8 +58,9 @@ def name_vpccmd(param, vpc_id, name):
 @click.argument('name')
 @click.argument('cidr', required=False, default="172.16.0.0/16")
 @click.option('--nosubnet')
+@click.option('--nogateway')
 @pass_global_parameters
-def create_vpccmd(params, name, cidr, nosubnet):
+def create_vpccmd(params, name, cidr, nosubnet, nogateway):
     """ create VPC with a specified block of CIDR """
     ec2 = get_ec2_connection()
     instances = list(ec2.vpcs.filter(Filters=[{'Name': 'tag:Name', 'Values': [name]}]))
@@ -76,8 +77,9 @@ def create_vpccmd(params, name, cidr, nosubnet):
         if nbits < 24: nbits = 24
         subnet = vpc.create_subnet(CidrBlock="%d.%d.%d.%d/%d" % (b1, b2, b3, b4, nbits))
         subnet.create_tags(Tags=[{'Key': 'Name', 'Value': name + "-default"}])
-        gateway = ec2.create_internet_gateway()
-        gateway.attach_to_vpc(VpcId=vpc.vpc_id)
+        if not nogateway:
+            gateway = ec2.create_internet_gateway()
+            gateway.attach_to_vpc(VpcId=vpc.vpc_id)
 
 @vpc_group.command("list", add_help_option=False, context_settings=dict(ignore_unknown_options=True))
 @click.argument('args', nargs=-1, type=click.UNPROCESSED)
