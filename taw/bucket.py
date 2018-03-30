@@ -88,7 +88,7 @@ def chmod_bucketcmd(params, mode, files, force):
 @bucket_group.command("mkbucket")
 @click.argument('bucketname')
 @pass_global_parameters
-def mkbucket_bucketcmd(params, bucketname, regionname):
+def mkbucket_bucketcmd(params, bucketname):
     """ create a bucket.
         The bucket will be created in a default region unless otherwise specifed by --region option.
     """
