@@ -59,6 +59,14 @@ def get_s3_client():
     global_s3_client = boto3.client('s3', region_name=param_region)
     return global_s3_client
 
+# IAM client
+global_iam_client = None
+def get_iam_client():
+    global global_iam_client
+    if global_iam_client != None: return global_iam_client
+    global_iam_client = boto3.client('iam', region_name=param_region)
+    return global_iam_client
+
 # Set region
 def set_aws_region(region_name):
     """ set the AWS region.
