@@ -3,7 +3,7 @@
 from __future__ import print_function
 from __future__ import absolute_import
 import os, sys, click
-import fnmatch, re, glob
+import fnmatch, glob
 from taw.util import *
 from taw.taw import * # This must be the end of imports
 
@@ -93,9 +93,14 @@ def mkbucket_bucketcmd(params, bucketname):
         The bucket will be created in a default region unless otherwise specifed by --region option.
     """
     s3 = get_s3_connection()
-    s3.create_bucket(Bucket=bucketname, CreateBucketConfiguration= {
-        'LocationConstraint': get_aws_region()
-        })
+    print("Region = %s" % get_aws_region())
+    bucket_region = get_aws_region()
+    if bucket_region == 'us-east-1':
+        s3.create_bucket(Bucket=bucketname)
+    else:
+        s3.create_bucket(Bucket=bucketname, CreateBucketConfiguration= {
+            'LocationConstraint': get_aws_region()
+            })
 
 @bucket_group.command("rmbucket")
 @click.argument('bucketname')
