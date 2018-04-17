@@ -2,9 +2,10 @@
 
 from __future__ import print_function
 from __future__ import absolute_import
-import os, sys, click
+import click
 from taw.util import *
-from taw.taw import * # This must be the end of imports
+from taw.taw import *  # This must be the end of imports
+
 
 # ==============
 #  IP COMMAND
@@ -13,6 +14,7 @@ from taw.taw import * # This must be the end of imports
 @pass_global_parameters
 def ip_group(params):
     """ manage Elastic IP addresses """
+
 
 @ip_group.command("rm")
 @click.argument('eip_id')
@@ -34,6 +36,7 @@ def rm_ipcmd(params, eip_id, force):
         print("\t%s (%s)" % (eip.public_ip, eip.allocation_id))
         print("Please add --force to actually remove those elastic IPs")
 
+
 @ip_group.command("create")
 @pass_global_parameters
 def create_ipcmd(params):
@@ -43,6 +46,7 @@ def create_ipcmd(params):
     print("Created an elastic IP")
     print("Public IP:", addr['PublicIp'])
     print("Allocation ID:", addr['AllocationId'])
+
 
 @ip_group.command("associate")
 @click.argument('eip_id')
@@ -57,10 +61,11 @@ def associate_ipcmd(params, eip_id, hostname):
     ec2_client = get_ec2_client()
     addr = ec2_client.associate_address(InstanceId=instance.id, AllocationId=eip_id)
 
+
 @ip_group.command("disassociate")
 @click.argument('association_id')
 @pass_global_parameters
-def associate_ipcmd(params, association_id):
+def disassociate_ipcmd(params, association_id):
     """ associate an elastic IP with the specified instance """
     ec2 = get_ec2_connection()
     eips = list(ec2.vpc_addresses.filter(Filters=[{'Name': 'association-id', 'Values': [association_id]}]))
@@ -68,10 +73,10 @@ def associate_ipcmd(params, association_id):
     ec2_client = get_ec2_client()
     addr = ec2_client.disassociate_address(AssociationId=association_id)
 
+
 @ip_group.command("list", add_help_option=False, context_settings=dict(ignore_unknown_options=True))
 @click.argument('args', nargs=-1, type=click.UNPROCESSED)
 @click.pass_context
 def list_ipcmd(ctx, args):
     """ list elastic IPs """
     with taw.make_context('taw', ctx.obj.global_opt_str + ['list', 'ip'] + list(args)) as ncon: _ = taw.invoke(ncon)
-
