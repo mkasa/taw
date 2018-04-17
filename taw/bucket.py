@@ -5,7 +5,8 @@ from __future__ import absolute_import
 import os, sys, click
 import fnmatch, glob
 from taw.util import *
-from taw.taw import * # This must be the end of imports
+from taw.taw import *  # This must be the end of imports
+
 
 # ================
 #  BUCKET COMMAND
@@ -14,6 +15,7 @@ from taw.taw import * # This must be the end of imports
 @pass_global_parameters
 def bucket_group(params):
     """ manage S3 buckets """
+
 
 @bucket_group.command("rm")
 @click.argument('files', nargs=-1)
@@ -26,7 +28,7 @@ def rm_bucketcmd(params, files, force):
     for fn in files:
         _, dest_bucket, dest_path = decompose_rpath(fn)
         s3 = get_s3_connection()
-        if dest_bucket == None: error_exit("file names must be in the form of 'bucket_name:key_name'")
+        if dest_bucket is None: error_exit("file names must be in the form of 'bucket_name:key_name'")
         bucket = s3.Bucket(dest_bucket)
         for obj in bucket.objects.all():
             if dest_path != '' and not fnmatch.fnmatch(obj.key, dest_path): continue
@@ -38,6 +40,7 @@ def rm_bucketcmd(params, files, force):
                 num_affected_bytes += obj.size
     if not force:
         print("Please add --force to actually remove those %d files (%d bytes in total)" % (num_affected_files, num_affected_bytes))
+
 
 @bucket_group.command("chmod")
 @click.argument('mode', nargs=1)
@@ -61,19 +64,19 @@ def chmod_bucketcmd(params, mode, files, force):
             'bucket-owner-read',
             'bucket-owner-full-control',
             'log-delivery-write',
-        ]
-    if not mode in allowed_perms:
+        ]  # noqa: E121
+    if mode not in allowed_perms:
         error_exit("Mode must be one of the followings:\n\t" + "\n\t".join(allowed_perms) + "\n\nSee http://docs.aws.amazon.com/AmazonS3/latest/dev/acl-overview.html#canned-acl for details\n")
     if mode == 'public-read-write' and not force:
         error_exit("Setting 'public-read-write' to a bucket or files might make you bankrupt.\nIf you are sure you understand what you do, add --force.")
     s3 = get_s3_connection()
     for full_path in files:
         _, bucket, path = decompose_rpath(full_path)
-        if bucket == None:
+        if bucket is None:
             error_exit("Use bucket-name: for specifying a bucket\nUse bucket-name:key-name for specifying files")
-        if path == '': # for bucket
+        if path == '':  # for bucket
             s3.Bucket(bucket).Acl().put(ACL=mode)
-        else: # for file
+        else:  # for file
             if path.find("*") != -1 or path.find("?") != -1:
                 if is_debugging: print("Glob expression '%s'" % path)
                 for obj in s3.Bucket(bucket).objects.all():
@@ -84,6 +87,7 @@ def chmod_bucketcmd(params, mode, files, force):
                     obj.Acl().put(ACL=mode)
             else:
                 s3.Bucket(bucket).Object(path).Acl().put(ACL=mode)
+
 
 @bucket_group.command("mkbucket")
 @click.argument('bucketname')
@@ -98,9 +102,10 @@ def mkbucket_bucketcmd(params, bucketname):
     if bucket_region == 'us-east-1':
         s3.create_bucket(Bucket=bucketname)
     else:
-        s3.create_bucket(Bucket=bucketname, CreateBucketConfiguration= {
+        s3.create_bucket(Bucket=bucketname, CreateBucketConfiguration={
             'LocationConstraint': get_aws_region()
-            })
+            })  # noqa: E123
+
 
 @bucket_group.command("rmbucket")
 @click.argument('bucketname')
@@ -116,6 +121,7 @@ def rmbucket_bucketcmd(params, bucketname, force):
     else:
         print("It will delete the following bucket. Add --force if you are sure.")
         print("\t" + bucketname)
+
 
 @bucket_group.command("cp")
 @click.argument('src', nargs=-1)
@@ -135,12 +141,12 @@ def cp_bucketcmd(params, src, dst, reduced, lowaccess, contenttype, overwritecon
     if reduced: storage_class = 'REDUCED_REDUNDANCY'
     if lowaccess: storage_class = 'STANDARD_IA'
     for src_file in src:
-        _, src_bucket , src_path  = decompose_rpath(src_file)
+        _, src_bucket , src_path  = decompose_rpath(src_file)  # noqa: E203, E221
         _, dest_bucket, dest_path = decompose_rpath(dst)
-        if src_bucket == None and dest_bucket == None: error_exit("We do not support local-to-local copy")
+        if src_bucket is None and dest_bucket is None: error_exit("We do not support local-to-local copy")
         s3 = get_s3_connection()
         any_file_is_copied = False
-        if src_bucket == None:
+        if src_bucket is None:
             # Local to remote
             for fn in glob.glob(os.path.expanduser(src_path)):
                 if dest_path.endswith('/'):
@@ -156,12 +162,12 @@ def cp_bucketcmd(params, src, dst, reduced, lowaccess, contenttype, overwritecon
                 else:
                     content_type_for_this_file = get_default_content_type(dest_key_name)
                 if is_debugging: print("%s to [%s]:%s (TYPE: %s)" % (fn, dest_bucket, dest_key_name, content_type_for_this_file), file=sys.stderr)
-                exargs = { 'StorageClass': storage_class,
-                           'ContentType': content_type_for_this_file,
-                           'ACL': permission }
+                exargs = {'StorageClass': storage_class,
+                          'ContentType': content_type_for_this_file,
+                          'ACL': permission}
                 s3.meta.client.upload_file(fn, dest_bucket, dest_key_name, ExtraArgs=exargs)
         else:
-            if dest_bucket == None:
+            if dest_bucket is None:
                 # Remote to local
                 bucket = s3.Bucket(src_bucket)
                 is_local_path_directory = os.path.isdir(dest_path)
@@ -200,10 +206,11 @@ def cp_bucketcmd(params, src, dst, reduced, lowaccess, contenttype, overwritecon
                             exargs['ContentType'] = content_type_for_this_file
                         s3_client.copy({'Bucket': src_bucket, 'Key': obj.key},
                                        dest_bucket, obj.key if dest_path == '' else dest_path,
-                                       ExtraArgs = exargs)
+                                       ExtraArgs=exargs)
                         any_file_is_copied = True
         if not any_file_is_copied:
             error_exit("No file matched")
+
 
 @bucket_group.command("list", add_help_option=False, context_settings=dict(ignore_unknown_options=True))
 @click.argument('args', nargs=-1, type=click.UNPROCESSED)
@@ -212,10 +219,10 @@ def list_bucketcmd(ctx, args):
     """ list buckets """
     with taw.make_context('taw', ctx.obj.global_opt_str + ['list', 'bucket'] + list(args)) as ncon: _ = taw.invoke(ncon)
 
+
 @bucket_group.command("ls", add_help_option=False, context_settings=dict(ignore_unknown_options=True))
 @click.argument('args', nargs=-1, type=click.UNPROCESSED)
 @click.pass_context
 def ls_bucketcmd(ctx, args):
     """ list buckets (same as 'taw bucket list') """
     with taw.make_context('taw', ctx.obj.global_opt_str + ['list', 'bucket'] + list(args)) as ncon: _ = taw.invoke(ncon)
-

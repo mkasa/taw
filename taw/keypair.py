@@ -2,9 +2,10 @@
 
 from __future__ import print_function
 from __future__ import absolute_import
-import os, sys, click
+import os, click
 from taw.util import *
-from taw.taw import * # This must be the end of imports
+from taw.taw import *  # This must be the end of imports
+
 
 # ==============
 #  KEYPAIR COMMAND
@@ -13,6 +14,7 @@ from taw.taw import * # This must be the end of imports
 @pass_global_parameters
 def keypair_group(params):
     """ manage key pairs """
+
 
 @keypair_group.command("create")
 @click.argument('key_name')
@@ -28,6 +30,7 @@ def create_keypaircmd(params, key_name):
         f.write(kp.key_material)
     print("Saved a private key as '%s'" % pem_file_path)
     print("The fingerprint is " + kp.key_fingerprint)
+
 
 @keypair_group.command("rm")
 @click.argument('key_name')
@@ -46,6 +49,7 @@ def rm_keypaircmd(params, key_name, force):
     else:
         print("Please add --force to actually remove this key pair\nNote that the local key file will not be removed. Only the key in AWS will be removed.")
 
+
 @keypair_group.command("import")
 @click.argument('key_name')
 @click.argument('file_path', required=False)
@@ -53,12 +57,13 @@ def rm_keypaircmd(params, key_name, force):
 def import_keypair(params, key_name, file_path):
     """ import a public key from a specified OpenSSH public key file """
     ec2 = get_ec2_connection()
-    if file_path == None:
+    if file_path is None:
         file_path = os.path.join(os.path.expanduser("~/.ssh"), key_name + ".pub")
     if not os.path.exists(file_path): error_exit("Key file '%s' does not exist" % file_path)
     with open(file_path, "rb") as f:
         public_key = f.readline().strip().decode('ascii')
     ec2.import_key_pair(KeyName=key_name, PublicKeyMaterial=public_key)
+
 
 @keypair_group.command("list", add_help_option=False, context_settings=dict(ignore_unknown_options=True))
 @click.argument('args', nargs=-1, type=click.UNPROCESSED)
@@ -66,4 +71,3 @@ def import_keypair(params, key_name, file_path):
 def list_keypaircmd(ctx, args):
     """ list key pairs """
     with taw.make_context('taw', ctx.obj.global_opt_str + ['list', 'keypair'] + list(args)) as ncon: _ = taw.invoke(ncon)
-

@@ -3,12 +3,11 @@
 from __future__ import print_function
 from __future__ import absolute_import
 import os, sys, subprocess, re, datetime, glob
-import click, boto3, colorama, botocore, fnmatch
-import tabulate, json
+import click, boto3, fnmatch
 import sqlite3
-from termcolor import colored
 from taw.util import *
-from taw.taw import * # This must be the end of imports
+from taw.taw import *  # This must be the end of imports
+
 
 # ==============
 #  LIST COMMAND
@@ -28,6 +27,7 @@ def list_cmd(params, restype, verbose, argdoc, attr, subargs, allregions):
         def sg_to_str(s):
             return dc(s, 'GroupName')
         return [sg_to_str(s) for s in cs]
+
     def get_block_device_map(xs):
         rows = []
         for d in xs:
@@ -37,7 +37,7 @@ def list_cmd(params, restype, verbose, argdoc, attr, subargs, allregions):
                     dev = "%s[%s](%sGB, %s, %s%s)" % (k.upper(), v['SnapshotId'], v['VolumeSize'], v['VolumeType'],
                                                            'Encrypted' if v['Encrypted'] == 'True' else 'Unencrypted',
                                                            ',DeleteOnTermination' if v['DeleteOnTermination'] == 'True' else ''
-                                                       )
+                                                     )
                     devs.append(dev)
             rows.append("\n".join(devs))
         return rows
@@ -76,6 +76,7 @@ def list_cmd(params, restype, verbose, argdoc, attr, subargs, allregions):
                 rows.append(row)
         except AttributeError as e:
             error_exit(str(e) + "\nNo such attribute.\nTry 'taw list --argdoc' to see all attributes.")
+
         def coloring(r):
             if verbose: return None
             if r[5] == 'stopped': return {-1: 'red'}
@@ -111,6 +112,7 @@ def list_cmd(params, restype, verbose, argdoc, attr, subargs, allregions):
         instances = ec2.instances.all()
         vpcs = ec2.vpcs.all()
         subnets = ec2.subnets.all()
+
         def subnet_id_to_subnet_name(subnet_id):
             for s in subnets:
                 if s.subnet_id != subnet_id: continue
@@ -262,6 +264,7 @@ def list_cmd(params, restype, verbose, argdoc, attr, subargs, allregions):
         if argdoc:
             click.launch('https://boto3.readthedocs.io/en/latest/reference/services/ec2.html#securitygroup')
             return
+
         def str_sg_permission(arr):
             """ convert the array into the list of strings that describe the firewall rules """
             def conv(d):
@@ -272,16 +275,16 @@ def list_cmd(params, restype, verbose, argdoc, attr, subargs, allregions):
                     iss = [x['CidrIp'] for x in ip_ranges]
                     if len(iss) == 1 and iss[0] == '0.0.0.0/0': return ["any"]
                     return iss
-                if not 'FromPort' in d:
+                if 'FromPort' not in d:
                     return ["N/A"]
                 if d['FromPort'] == -1:
-                    prot  = d['IpProtocol']
+                    prot   = d['IpProtocol']  # noqa: E221
                     ranges = d['IpRanges']
                     return ["%s:%s" % (prot, i) for i in fs(ranges)]
                 else:
-                    prot  = d['IpProtocol']
+                    prot  = d['IpProtocol']  # noqa: E221
                     froms = d['FromPort']
-                    tos   = d['ToPort']
+                    tos   = d['ToPort']      # noqa: E221
                     if froms == tos:
                         port_range_str = "%d" % froms
                     else:
@@ -324,7 +327,7 @@ def list_cmd(params, restype, verbose, argdoc, attr, subargs, allregions):
                 row = [f(getattr(security_group, i)) for _, i, _, f in list_columns]
                 if verbose:
                     insts = [extract_name_from_tags(inst.tags) for inst in instances if
-                            security_group.group_id in [x['GroupId'] for x in inst.security_groups]]
+                             security_group.group_id in [x['GroupId'] for x in inst.security_groups]]
                     row.append(insts)
                 vpc_names = [extract_name_from_tags(vpc.tags) for vpc in vpcs if vpc.vpc_id == security_group.vpc_id]
                 row.append(vpc_names)
@@ -343,6 +346,7 @@ def list_cmd(params, restype, verbose, argdoc, attr, subargs, allregions):
             if 1 < len(zone_name_if_any): error_exit("Only single zone name is accepted.")
             zone_name = zone_name_if_any[0]
             zone_id = convert_zone_name_to_zone_id(zone_name)
+
             def remove_trailing_domain_name(d):
                 if d.endswith('.' + zone_name): return d[:-len(zone_name) - 1]
                 if d.endswith('.' + zone_name + '.'): return d[:-len(zone_name) - 2]
@@ -380,6 +384,7 @@ def list_cmd(params, restype, verbose, argdoc, attr, subargs, allregions):
             if permission_str == 'READ_ACP': return 16
             if permission_str == 'FULL_CONTROL': return 30
             error_exit("Ask the author. Unknown permission string '%s'.\nThis might be probably caused by a change in Amazon S3 specs." % permission_str)
+
         def perm_bit_to_str(pb):
             if pb == 30: return 'all'
             retvals = []
@@ -388,6 +393,7 @@ def list_cmd(params, restype, verbose, argdoc, attr, subargs, allregions):
             retvals.append('r' if pb & 4 else '-')
             retvals.append('w' if pb & 2 else '-')
             return "".join(retvals)
+
         def grants_to_id_to_perm_bits(grants):
             id_to_perm_bits = {}
             for gpar in grants:
@@ -415,7 +421,7 @@ def list_cmd(params, restype, verbose, argdoc, attr, subargs, allregions):
             """ list a specified bucket """
             _, bucket_name, bucket_path = decompose_rpath(bucket_name_if_any[0])
             key_search_regex_if_any = bucket_name_if_any[1] if 1 < len(bucket_name_if_any) else None
-            if bucket_name == None:
+            if bucket_name is None:
                 bucket_name = bucket_path
             else:
                 key_search_regex_if_any = bucket_path
@@ -441,10 +447,10 @@ def list_cmd(params, restype, verbose, argdoc, attr, subargs, allregions):
             try:
                 for obj in query_object:
                     if key_search_regex_if_any and not fnmatch.fnmatch(obj.key, key_search_regex_if_any): continue
-                    row = [f(getattr(obj, i)) for _, i, _, f in list_columns]
+                    row = [f(getattr(obj, i)) for _, i, _, f in list_columns]  # noqa: F812
                     if verbose:
                         id_to_perm_bits = grants_to_id_to_perm_bits(obj.Acl().grants)
-                        row.append(", ".join([k+"("+perm_bit_to_str(v)+")" for k, v in id_to_perm_bits.items()]))
+                        row.append(", ".join([k + "(" + perm_bit_to_str(v) + ")" for k, v in id_to_perm_bits.items()]))
                     rows.append(row)
             except AttributeError as e:
                 error_exit(str(e) + "\nNo such attribute.\nTry 'taw list --argdoc' to see all attributes.")
@@ -462,7 +468,7 @@ def list_cmd(params, restype, verbose, argdoc, attr, subargs, allregions):
                     bucket_name = b.name
                     row = [f(getattr(b, i)) for _, i, _, f in list_columns]
                     id_to_perm_bits = grants_to_id_to_perm_bits(b.Acl().grants)
-                    row.append(", ".join([k+"("+perm_bit_to_str(v)+")" for k, v in id_to_perm_bits.items()]))
+                    row.append(", ".join([k + "(" + perm_bit_to_str(v) + ")" for k, v in id_to_perm_bits.items()]))
                     if verbose:
                         # NOTE: should do better in the future.
                         #       see https://github.com/boto/boto3/issues/292
@@ -519,7 +525,7 @@ def list_cmd(params, restype, verbose, argdoc, attr, subargs, allregions):
         my_region = get_aws_region()
         for sql_row in conn.execute("SELECT * FROM ami_ids;"):
             image_name = sql_row[0]
-            if 0 < len(search_terms) and all(map(lambda x: re.search(x, image_name, re.I) == None, search_terms)): continue
+            if 0 < len(search_terms) and all(map(lambda x: re.search(x, image_name, re.I) is None, search_terms)): continue
             row = [image_name]
             region_to_ami = pickle.loads(sql_row[1])
             if my_region in region_to_ami:
@@ -551,27 +557,27 @@ def list_cmd(params, restype, verbose, argdoc, attr, subargs, allregions):
 
     def list_test():
         """ test function. (can be eliminated) """
-        output_table(params, ["c1", "c2", "c3", "l"*100], [
+        output_table(params, ["c1", "c2", "c3", "l" * 100], [
             [1, 1, 3, "boo\nmoo\nnon\n"],
             [4, 5, 6, "bar"]], [lambda x: ({-1: 'red'} if int(x[1]) % 2 == 1 else None)])
 
     subcommand_table = {
-        'instances'      : list_instance,
-        'vpcs'           : list_vpc,
-        'test'           : list_test,
-        'subnets'        : list_subnet,
-        'images'         : list_image,
-        'keypairs'       : list_key_pairs,
-        'localkeypairs'  : list_local_key_pairs,
-        'snapshots'      : list_snapshots,
-        'securitygroups' : list_security_groups,
-        'sg'             : list_security_groups,
-        'zone'           : list_zones,
-        'buckets'        : list_s3_buckets,
-        'az'             : list_availability_zones,
-        'ip'             : list_elastic_ip,
-        'market'         : list_market_ami,
-        'price'          : list_instance_price,
+            'instances'      : list_instance,
+            'vpcs'           : list_vpc,
+            'test'           : list_test,
+            'subnets'        : list_subnet,
+            'images'         : list_image,
+            'keypairs'       : list_key_pairs,
+            'localkeypairs'  : list_local_key_pairs,
+            'snapshots'      : list_snapshots,
+            'securitygroups' : list_security_groups,
+            'sg'             : list_security_groups,
+            'zone'           : list_zones,
+            'buckets'        : list_s3_buckets,
+            'az'             : list_availability_zones,
+            'ip'             : list_elastic_ip,
+            'market'         : list_market_ami,
+            'price'          : list_instance_price,
         }
     if allregions:
         s = boto3.session.Session()
@@ -591,4 +597,3 @@ def list_cmd(params, restype, verbose, argdoc, attr, subargs, allregions):
             call_function_by_unambiguous_prefix(subcommand_table, restype, subargs)
     else:
         call_function_by_unambiguous_prefix(subcommand_table, restype, subargs)
-
