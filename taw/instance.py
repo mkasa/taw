@@ -62,6 +62,20 @@ def terminate_cmd(params, hostnames, force):
         print_warning("Please add --force to actually TERMINATE the instance(s).\nOnce you terminate them, they will be LOST.")
 
 
+@instance_group.command("ip")
+@click.argument('hostnames', nargs=-1, metavar='<host names>')
+@click.option('-v', is_flag=True, help='show instance IDs as well')
+@pass_global_parameters
+def ip_cmd(params, hostnames, v):
+    """ show a global IP address of a given instance """
+    for hostname in hostnames:
+        instance = convert_host_name_to_instance(hostname)
+        if v:
+            print("%s\t%s" % (instance.public_ip_address, instance.id))
+        else:
+            print(instance.public_ip_address)
+
+
 @instance_group.command("register_market_ami", short_help='get machine image IDs of popular OS')
 @click.option('-n', is_flag=True)
 @pass_global_parameters
