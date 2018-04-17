@@ -2,9 +2,10 @@
 
 from __future__ import print_function
 from __future__ import absolute_import
-import os, sys, click
+import click
 from taw.util import *
-from taw.taw import * # This must be the end of imports
+from taw.taw import *  # This must be the end of imports
+
 
 # =============================
 #  SG (Security Group) COMMAND
@@ -13,6 +14,7 @@ from taw.taw import * # This must be the end of imports
 @pass_global_parameters
 def sg_group(params):
     """ manage security group """
+
 
 @sg_group.command("rm")
 @click.argument('sg', nargs=-1)
@@ -27,6 +29,7 @@ def rm_sgcmd(params, sg, force):
         sg.delete()
     else:
         print("Please add --force to actually remove those security group")
+
 
 @sg_group.command("allow")
 @click.argument('sg', metavar='<security group (ID or name)>')
@@ -60,6 +63,7 @@ def allow_sgcmd(params, sg, protocol_str, cidr, egress, force):
                 CidrIp=cidr
             )
 
+
 @sg_group.command("revoke")
 @click.argument('sg', metavar='<security group (ID or name)>')
 @click.argument('protocol_str', metavar='<protocol strings>')
@@ -92,10 +96,10 @@ def revoke_sgcmd(params, sg, protocol_str, cidr, egress, force):
                 CidrIp=cidr
             )
 
+
 @sg_group.command("list", add_help_option=False, context_settings=dict(ignore_unknown_options=True))
 @click.argument('args', nargs=-1, type=click.UNPROCESSED)
 @click.pass_context
 def list_sgcmd(ctx, args):
     """ list security groups """
     with taw.make_context('taw', ctx.obj.global_opt_str + ['list', 'sg'] + list(args)) as ncon: _ = taw.invoke(ncon)
-

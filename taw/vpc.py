@@ -6,6 +6,7 @@ import click
 from taw.util import *
 from taw.taw import *  # This must be the end of imports
 
+
 # ==============
 #  VPC COMMAND
 # ==============
@@ -13,6 +14,7 @@ from taw.taw import *  # This must be the end of imports
 @pass_global_parameters
 def vpc_group(params):
     """ manage Virtual Private Cloud (VPC) """
+
 
 @vpc_group.command("rm")
 @click.argument('vpc', nargs=-1)
@@ -43,6 +45,7 @@ def rm_vpccmd(params, vpc, force):
     else:
         print("Please add --force to actually remove those VPCs")
 
+
 @vpc_group.command("name")
 @click.argument('vpc_id')
 @click.argument('name')
@@ -53,6 +56,7 @@ def name_vpccmd(param, vpc_id, name):
     vpc = convert_vpc_name_to_vpc(vpc_id)
     if is_debugging: print(vpc)
     vpc.create_tags(Tags=[{'Key': 'Name', 'Value': name}])
+
 
 @vpc_group.command("create")
 @click.argument('name')
@@ -81,10 +85,10 @@ def create_vpccmd(params, name, cidr, nosubnet, nogateway):
             gateway = ec2.create_internet_gateway()
             gateway.attach_to_vpc(VpcId=vpc.vpc_id)
 
+
 @vpc_group.command("list", add_help_option=False, context_settings=dict(ignore_unknown_options=True))
 @click.argument('args', nargs=-1, type=click.UNPROCESSED)
 @click.pass_context
 def list_vpccmd(ctx, args):
     """ list VPC """
     with taw.make_context('taw', ctx.obj.global_opt_str + ['list', 'vpc'] + list(args)) as ncon: _ = taw.invoke(ncon)
-

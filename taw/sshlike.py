@@ -2,12 +2,13 @@
 
 from __future__ import print_function
 from __future__ import absolute_import
-import os, sys, click
+import os, click
 import subprocess
 from taw.util import *
 from taw.taw import *
 
 # commands/subcommands
+
 
 # ==============
 #  SSH COMMAND
@@ -20,6 +21,7 @@ def ssh_cmd(params, hostname, sshargs):
     """ do SSH to a specified host """
     ssh_like_call(params, 'ssh', hostname, sshargs)
 
+
 # ==============
 #  MOSH COMMAND
 # ==============
@@ -30,6 +32,7 @@ def ssh_cmd(params, hostname, sshargs):
 def mosh_cmd(params, hostname, moshargs):
     """ do MOSH to a specified host """
     ssh_like_call(params, 'mosh', hostname, moshargs)
+
 
 # ==============
 #  RSSH COMMAND
@@ -42,6 +45,7 @@ def rssh_cmd(params, hostname, rsshargs):
     """ do rSSH to a specified host """
     ssh_like_call(params, 'rssh', hostname, rsshargs)
 
+
 # ==============
 #  RSYNC COMMAND
 # ==============
@@ -52,6 +56,7 @@ def rssh_cmd(params, hostname, rsshargs):
 def rsync_cmd(params, hostname, rsshargs):
     """ do rsync to a specified host """
     ssh_like_call(params, 'rsync', hostname, rsshargs)
+
 
 # ==============
 #  SCP COMMAND
@@ -82,14 +87,14 @@ def scp_cmd(params, src, dst, key_file_path, preserve_flag, batch_flag, compress
     if recursive_flag: args.append('-r')
     if quiet_flag: args.append('-q')
     (dest_user, dest_host, dest_path) = decompose_rpath(dst)
-    copying_local_to_remote = dest_host != None
+    copying_local_to_remote = dest_host is not None
     if copying_local_to_remote:
         instance = convert_host_name_to_instance(dest_host)
-        if instance.public_ip_address == None: error_exit("The instance has no public IP address")
+        if instance.public_ip_address is None: error_exit("The instance has no public IP address")
         dest_host = instance.public_ip_address
         if dest_user == '_': dest_user = os.environ['USER']
-        if dest_user == None: dest_user = get_root_like_user_from_instance(instance)
-        if key_file_path == None: key_file_path = os.path.join(os.path.expanduser("~/.ssh"), instance.key_name + ".pem")
+        if dest_user is None: dest_user = get_root_like_user_from_instance(instance)
+        if key_file_path is None: key_file_path = os.path.join(os.path.expanduser("~/.ssh"), instance.key_name + ".pem")
         if os.path.exists(key_file_path):
             args += ['-i', key_file_path]
         else:
@@ -102,12 +107,12 @@ def scp_cmd(params, src, dst, key_file_path, preserve_flag, batch_flag, compress
             if host[1] != sources_arr[0][1]: error_exit("Multiple source hosts are not supported.")
             if host[0] != sources_arr[0][0]: error_exit("Multiple source users are not supported.")
         instance = convert_host_name_to_instance(sources_arr[0][1])
-        if instance.public_ip_address == None: error_exit("The instance has no public IP address")
+        if instance.public_ip_address is None: error_exit("The instance has no public IP address")
         src_host = instance.public_ip_address
         src_user = sources_arr[0][0]
         if src_user == '_': src_user = os.environ['USER']
-        if src_user == None: src_user = get_root_like_user_from_instance(instance)
-        if key_file_path == None: key_file_path = os.path.join(os.path.expanduser("~/.ssh"), instance.key_name + ".pem")
+        if src_user is None: src_user = get_root_like_user_from_instance(instance)
+        if key_file_path is None: key_file_path = os.path.join(os.path.expanduser("~/.ssh"), instance.key_name + ".pem")
         if os.path.exists(key_file_path):
             args += ['-i', key_file_path]
         else:
@@ -121,4 +126,3 @@ def scp_cmd(params, src, dst, key_file_path, preserve_flag, batch_flag, compress
         subprocess.check_call(args)
     except:
         pass
-

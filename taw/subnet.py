@@ -2,9 +2,10 @@
 
 from __future__ import print_function
 from __future__ import absolute_import
-import os, sys, click
+import click
 from taw.util import *
-from taw.taw import * # This must be the end of imports
+from taw.taw import *  # This must be the end of imports
+
 
 # ================
 #  SUBNET COMMAND
@@ -13,6 +14,7 @@ from taw.taw import * # This must be the end of imports
 @pass_global_parameters
 def subnet_group(params):
     """ manage subnets """
+
 
 @subnet_group.command("create")
 @click.argument('name')
@@ -34,6 +36,7 @@ def create_subnetcmd(params, name, vpc, cidr, az):
     if is_debugging: print(subnet)
     subnet.create_tags(Tags=[{'Key': 'Name', 'Value': name}])
 
+
 @subnet_group.command("rm")
 @click.argument('subnet', nargs=-1)
 @click.option('--force', is_flag=True)
@@ -42,11 +45,12 @@ def rm_subnetcmd(params, subnet, force):
     """ remove subnet(s) with specified name(s)  """
     ec2 = get_ec2_connection()
     subnet = list(subnet)
-    for subnet in ec2.subnets.filter(Filters=[{'Name':'tag:Name', 'Values': subnet}]):
+    for subnet in ec2.subnets.filter(Filters=[{'Name': 'tag:Name', 'Values': subnet}]):
         print("subnet %s (%s)" % (subnet.id, extract_name_from_tags(subnet.tags)))
         if force: subnet.delete()
     if not force:
         print("Please add --force to actually remove those subnets")
+
 
 @subnet_group.command("name")
 @click.argument('subnet_id')
@@ -59,10 +63,10 @@ def name_subnetcmd(params, subnet_id, name):
     if is_debugging: print(subnet)
     subnet.create_tags(Tags=[{'Key': 'Name', 'Value': name}])
 
+
 @subnet_group.command("list", add_help_option=False, context_settings=dict(ignore_unknown_options=True))
 @click.argument('args', nargs=-1, type=click.UNPROCESSED)
 @click.pass_context
 def list_subnetcmd(ctx, args):
     """ list subnets """
     with taw.make_context('taw', ctx.obj.global_opt_str + ['list', 'subnets'] + list(args)) as ncon: _ = taw.invoke(ncon)
-

@@ -2,8 +2,8 @@
 
 from __future__ import print_function
 from __future__ import absolute_import
-import os, sys, click
-import re, boto3, botocore
+import sys
+import re, botocore
 from taw.util import *
 import taw.sshlike
 import taw.instance
@@ -15,9 +15,10 @@ import taw.list
 import taw.sg
 import taw.keypair
 import taw.ip
-from taw.taw import * # This must be the end of imports
+from taw.taw import *  # This must be the end of imports
 
 # commands/subcommands
+
 
 # Main runner
 def main():
@@ -31,6 +32,7 @@ def main():
             print("Request would have succeeded, but DryRun flag is set.")
             sys.exit(0)
         error_exit(str(e))
+
 
 if __name__ == '__main__':
     main()

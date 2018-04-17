@@ -2,9 +2,10 @@
 
 from __future__ import print_function
 from __future__ import absolute_import
-import os, sys, click
+import click
 from taw.util import *
-from taw.taw import * # This must be the end of imports
+from taw.taw import *  # This must be the end of imports
+
 
 # ==============
 #  ZONE COMMAND
@@ -13,6 +14,7 @@ from taw.taw import * # This must be the end of imports
 @pass_global_parameters
 def zone_group(params):
     """ manage zones """
+
 
 def complete_subdomain_name(possibly_subdomain, domain_name):
     """ Complete a full domain name from a possibly subdomain name.
@@ -26,6 +28,7 @@ def complete_subdomain_name(possibly_subdomain, domain_name):
     if possibly_subdomain.endswith('.' + domain_name[:-1]): return possibly_subdomain + '.'
     if possibly_subdomain.endswith('.'): return possibly_subdomain
     return possibly_subdomain + '.' + domain_name
+
 
 @zone_group.command("add")
 @click.argument('zonename', metavar='<zone name)>')
@@ -44,20 +47,21 @@ def add_zonecmd(params, zonename, name, type_str, values, ttl, weight):
         'Name': name,
         'Type': type_str,
         'TTL': ttl,
-        'ResourceRecords': [ {'Value': v } for v in list(values)],
+        'ResourceRecords': [{'Value': v} for v in list(values)],
     }
     result = r53.change_resource_record_sets(
         HostedZoneId=zone_id,
         ChangeBatch={
             'Comment': 'taw.py',
-            'Changes': [ {
+            'Changes': [{
                     'Action': 'UPSERT',
                     'ResourceRecordSet': resource_record_set,
-            } ]
+            }]
         }
     )
     change_info = result['ChangeInfo']
     print("ID: %s, Status: %s" % (change_info['Id'], change_info['Status']))
+
 
 @zone_group.command("name")
 @click.argument('zonename', metavar='<zone name)>')
@@ -90,31 +94,32 @@ def name_zonecmd(params, zonename, name, targetname, ttl, weight):
             'Name': name,
             'Type': 'CNAME',
             'TTL': ttl,
-            'ResourceRecords': [ {'Value': endpoint_url_domain } ],
+            'ResourceRecords': [{'Value': endpoint_url_domain}],
         }
     else:
         instance = convert_host_name_to_instance(targetname)
-        if instance.public_ip_address == None:
+        if instance.public_ip_address is None:
             error_exit("The instance '%s' (%s) has no public IP address" % (extract_name_from_tags(instance.tags), instance.id))
         values = [instance.public_ip_address]
         resource_record_set = {
             'Name': name,
             'Type': 'A',
             'TTL': ttl,
-            'ResourceRecords': [ {'Value': v } for v in list(values)],
+            'ResourceRecords': [{'Value': v} for v in list(values)],
         }
     result = r53.change_resource_record_sets(
         HostedZoneId=zone_id,
         ChangeBatch={
             'Comment': 'taw.py',
-            'Changes': [ {
+            'Changes': [{
                     'Action': 'UPSERT',
                     'ResourceRecordSet': resource_record_set,
-            } ]
+            }]
         }
     )
     change_info = result['ChangeInfo']
     print("ID: %s, Status: %s" % (change_info['Id'], change_info['Status']))
+
 
 @zone_group.command("rm")
 @click.argument('zonename', metavar='<zone name)>')
@@ -139,10 +144,10 @@ def rm_zonecmd(params, zonename, name, type_str, force):
             HostedZoneId=zone_id,
             ChangeBatch={
                 'Comment': 'taw.py',
-                'Changes': [ {
+                'Changes': [{
                         'Action': 'DELETE',
                         'ResourceRecordSet': zone_to_delete,
-                } ]
+                }]
             }
         )
         change_info = result['ChangeInfo']
@@ -155,6 +160,7 @@ def rm_zonecmd(params, zonename, name, type_str, force):
               zone_to_delete['TTL'],
               [x['Value'] for x in zone_to_delete['ResourceRecords']]
             ]])
+
 
 @zone_group.command("list", add_help_option=False, context_settings=dict(ignore_unknown_options=True))
 @click.argument('args', nargs=-1, type=click.UNPROCESSED)

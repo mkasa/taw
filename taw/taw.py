@@ -2,20 +2,24 @@
 
 from __future__ import print_function
 from __future__ import absolute_import
-import os, sys, click
+import click
 from taw.util import *
 
 # constants
 _VERSION_STRING = "0.0.0"
 
+
 # click decorator
 class GlobalParameters(object):
     def __init__(self):
         pass
+
     def __repr__(self):
         return '<GlobalParameters>'
 
+
 pass_global_parameters = click.make_pass_decorator(GlobalParameters)
+
 
 # commands/subcommands
 @click.group(help="Tiny Amazon Wrapper")
@@ -31,8 +35,8 @@ pass_global_parameters = click.make_pass_decorator(GlobalParameters)
 def taw(ctx, region, noheader, format_type, noless, debug, aws_profile, dryrun):
     """ main command group """
     ctx.obj = GlobalParameters()
-    opt_lists = [] # this is for command redirection such as ('taw instance list' -> 'taw list instance') (*)
-    colorama.init() # no effect on *NIX but required on Windows
+    opt_lists = []   # this is for command redirection such as ('taw instance list' -> 'taw list instance') (*)
+    colorama.init()  # no effect on *NIX but required on Windows
     set_debugging_status(debug)
     if debug: opt_lists.append('--debug')
     if aws_profile:
@@ -52,4 +56,4 @@ def taw(ctx, region, noheader, format_type, noless, debug, aws_profile, dryrun):
     if noless: opt_lists += ['--noless']
     ctx.obj.aws_dryrun = dryrun
     if dryrun: opt_lists += ['--dryrun']
-    ctx.obj.global_opt_str = opt_lists # Again, this is for command redirection.See the above (*)
+    ctx.obj.global_opt_str = opt_lists  # Again, this is for command redirection.See the above (*)

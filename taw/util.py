@@ -3,8 +3,8 @@
 from __future__ import print_function
 import os, sys, click
 import subprocess, re, datetime, mimetypes
-import boto3, botocore
-import tabulate, json, colorama
+import boto3
+import tabulate, json
 import pyperclip, time, sqlite3, pickle, readline
 from termcolor import colored
 
@@ -14,58 +14,78 @@ param_region = None
 param_profile = None
 is_debugging = False
 
+
 # Debugging
 def set_debugging_status(s):
     global is_debugging
     is_debugging = s
 
+
 # EC2 client
 global_ec2_client = None
+
+
 def get_ec2_client():
     global global_ec2_client
-    if global_ec2_client != None: return global_ec2_client
+    if global_ec2_client is not None: return global_ec2_client
     global_ec2_client = boto3.client('ec2', region_name=param_region)
     return global_ec2_client
 
+
 # EC2 connection
 global_ec2_connection = None
+
+
 def get_ec2_connection():
     global global_ec2_connection
-    if global_ec2_connection != None: return global_ec2_connection
+    if global_ec2_connection is not None: return global_ec2_connection
     global_ec2_connection = boto3.resource('ec2', region_name=param_region)
     return global_ec2_connection
 
+
 # Route53 connection
 global_r53_connection = None
+
+
 def get_r53_connection():
     global global_r53_connection
-    if global_r53_connection != None: return global_r53_connection
+    if global_r53_connection is not None: return global_r53_connection
     global_r53_connection = boto3.client('route53', region_name=param_region)
     return global_r53_connection
 
+
 # S3 connection
 global_s3_connection = None
+
+
 def get_s3_connection():
     global global_s3_connection
-    if global_s3_connection != None: return global_s3_connection
+    if global_s3_connection is not None: return global_s3_connection
     global_s3_connection = boto3.resource('s3', region_name=param_region)
     return global_s3_connection
 
+
 # S3 client
 global_s3_client = None
+
+
 def get_s3_client():
     global global_s3_client
-    if global_s3_client != None: return global_s3_client
+    if global_s3_client is not None: return global_s3_client
     global_s3_client = boto3.client('s3', region_name=param_region)
     return global_s3_client
 
+
 # IAM client
 global_iam_client = None
+
+
 def get_iam_client():
     global global_iam_client
-    if global_iam_client != None: return global_iam_client
+    if global_iam_client is not None: return global_iam_client
     global_iam_client = boto3.client('iam', region_name=param_region)
     return global_iam_client
+
 
 # Set region
 def set_aws_region(region_name):
@@ -81,14 +101,16 @@ def set_aws_region(region_name):
     if param_region != region_name:
         param_region = region_name
         if is_debugging: print("AWS DEFAULT REGION WAS SET TO " + region_name, file=sys.stderr)
-        global_ec2_client     = None
+        global_ec2_client     = None  # noqa: E221
         global_ec2_connection = None
         global_r53_connection = None
-        global_s3_connection  = None
-        global_s3_client      = None
+        global_s3_connection  = None  # noqa: E221
+        global_s3_client      = None  # noqa: E221
+
 
 def get_aws_region():
     return param_region
+
 
 # Set profile
 def set_aws_profile(profile_name):
@@ -104,23 +126,26 @@ def set_aws_profile(profile_name):
         param_profile = profile_name
         boto3.setup_default_session(profile_name=param_profile)
         if is_debugging: print("AWS DEFAULT PROFILE WAS SET TO " + profile_name, file=sys.stderr)
-        global_ec2_client     = None
+        global_ec2_client     = None  # noqa: E221
         global_ec2_connection = None
         global_r53_connection = None
-        global_s3_connection  = None
+        global_s3_connection  = None  # noqa: E221
+
 
 # utility functions
 def ident(x):
     """ Identity function """
     return x
 
+
 def dc(di, element_name):
     """ returns the child element `element_name' if any.
         returns None otherwise (when di is null or there is no such child element
     """
-    if di == None: return None
+    if di is None: return None
     if element_name in di: return di[element_name]
     return None
+
 
 def error_exit(msg):
     """ print an error message and exit with error code 2
@@ -130,12 +155,14 @@ def error_exit(msg):
     click.secho("ERROR: " + ("\n       ".join(lines)), fg='red')
     sys.exit(2)
 
+
 def print_warning(msg):
     """ print a warning message
         msg can contain newlines if needed.
     """
     lines = msg.split("\n")
     click.secho("WARNING: " + ("\n         ".join(lines)), fg='yellow')
+
 
 def print_info(msg):
     """ print an informational message
@@ -144,9 +171,11 @@ def print_info(msg):
     lines = msg.split("\n")
     click.secho("INFO: " + ("\n      ".join(lines)), fg='white')
 
+
 def convert_amazon_time_to_local(s):
     """ parse a date-time string given by Amazon and outputs the string of the local time"""
     return datetime.datetime.strftime(datetime.datetime.strptime(s, "%Y-%m-%dT%H:%M:%S.%fZ"), '%c')
+
 
 def ensure_credential(p):
     """ ensure that the target AWS region and the credentials are
@@ -155,7 +184,7 @@ def ensure_credential(p):
     config_file_path = os.path.join(home_dir, ".aws", "config")
     have_config_file = os.path.exists(config_file_path)
     have_cred_file = os.path.exists(os.path.join(home_dir, ".aws", "credentials"))
-    if param_region == None:
+    if param_region is None:
         if have_config_file:
             if (3, 0) <= sys.version_info:
                 import configparser
@@ -180,23 +209,25 @@ or by ~/.aws/credentials, or by ~/.aws/config.
 See http://docs.aws.amazon.com/cli/latest/userguide/cli-chap-getting-started.html for details.
 """)
 
+
 region_name_to_region_nickname = {
-    "us-east-1"      : "virginia",
-    "us-east-2"      : "ohio",
-    "us-west-1"      : "california",
-    "us-west-2"      : "oregon",
-    "ca-central-1"   : "canada",
-    "sa-east-1"      : "sanpaulo",
-    "eu-west-1"      : "ireland",
-    "eu-west-2"      : "london",
-    "eu-central-1"   : "frankfurt",
-    "ap-southeast-1" : "singapore",
-    "ap-southeast-2" : "sydney",
-    "ap-northeast-1" : "tokyo",
-    "ap-northeast-2" : "seoul",
-    "ap-south-1"     : "mumbai"
+        "us-east-1"      : "virginia",
+        "us-east-2"      : "ohio",
+        "us-west-1"      : "california",
+        "us-west-2"      : "oregon",
+        "ca-central-1"   : "canada",
+        "sa-east-1"      : "sanpaulo",
+        "eu-west-1"      : "ireland",
+        "eu-west-2"      : "london",
+        "eu-central-1"   : "frankfurt",
+        "ap-southeast-1" : "singapore",
+        "ap-southeast-2" : "sydney",
+        "ap-northeast-1" : "tokyo",
+        "ap-northeast-2" : "seoul",
+        "ap-south-1"     : "mumbai"
     }
 region_nickname_to_region_name = dict([(v, k) for k, v in region_name_to_region_nickname.items()])
+
 
 def normalize_region_name(region_name, error_on_exit=True):
     """ normalize a given region name.
@@ -208,6 +239,7 @@ def normalize_region_name(region_name, error_on_exit=True):
     if error_on_exit:
         error_exit("Region name '%s' is not a region name nor a region nickname" % region_name)
     return None
+
 
 instance_type_name_to_instance_type = {
     "t2.nano"        : {"vcpu" :   1, "mem" :  0.5, "desc" :  "3 credit minutes/hour, EBS backend"},
@@ -299,6 +331,7 @@ trusted_ami_owners = [
     '099720109477',   # Ubuntu
 ]
 
+
 def read_from_aws_profile(profile_name):
     profile_file_path = profile_name
     if not profile_file_path.startswith('/'):
@@ -312,9 +345,10 @@ def read_from_aws_profile(profile_name):
     except:
         error_exit("Cannot find or had an error with profile '%s'\nThe searched file was '%s'" % (profile_name, profile_file_path))
     xs = o.decode('utf-8').split("\n")
-    os.environ['AWS_DEFAULT_REGION']    = xs[-2]
+    os.environ['AWS_DEFAULT_REGION']    = xs[-2]  # noqa: E221
     os.environ['AWS_SECRET_ACCESS_KEY'] = xs[-3]
-    os.environ['AWS_ACCESS_KEY_ID']     = xs[-4]
+    os.environ['AWS_ACCESS_KEY_ID']     = xs[-4]  # noqa: E221
+
 
 def multicolumn_tabulate(rows, header, coloring):
     """ create the string of a textual table defined by header and rows with coloring
@@ -327,7 +361,7 @@ def multicolumn_tabulate(rows, header, coloring):
     is_rightjustify = [False for _ in range(len(header))]
     for i in range(len(header)):
         for row in rows:
-            if i < len(row) and row[i] != None:
+            if i < len(row) and row[i] is not None:
                 v = row[i]
                 if isinstance(v, list) and 0 < len(v): v = v[0]
                 if isinstance(v, bool) or isinstance(v, str):
@@ -339,14 +373,16 @@ def multicolumn_tabulate(rows, header, coloring):
                     break
     # str'fy
     header = [str(x) for x in header]
-    rows = [[("\n".join([str(i).rstrip() for i in x]) if isinstance(x, list) else str(x).rstrip()) if x != None else '' for x in row] for row in rows]
+    rows = [[("\n".join([str(i).rstrip() for i in x]) if isinstance(x, list) else str(x).rstrip()) if x is not None else '' for x in row] for row in rows]
     # calculate the column width and the row heights
     column_index_to_max_width = [0 for _ in range(len(header))]
     for i, x in enumerate(header):
         column_index_to_max_width[i] = max(column_index_to_max_width[i], len(x))
     row_index_to_max_height = []
+
     def str_to_height(s):
         return len(s.split("\n"))
+
     def str_to_width(str_w_newlines):
         return max([len(x) for x in str_w_newlines.split("\n")])
     for row in rows:
@@ -357,16 +393,16 @@ def multicolumn_tabulate(rows, header, coloring):
     lines = []
     # draw the header
     lines.append(" ".join(["%-*s" % (column_index_to_max_width[i], x) for i, x in enumerate(header)]))
-    lines.append(" ".join(["-"*column_index_to_max_width[i] for i, _ in enumerate(header)]))
+    lines.append(" ".join(["-" * column_index_to_max_width[i] for i, _ in enumerate(header)]))
     # draw each row
     for row_index, row in enumerate(rows):
         # determine colors
         color = [None for _ in range(len(header))]
-        if coloring != None:
+        if coloring is not None:
             def check_color():
                 for func in coloring:
                     result = func(row)
-                    if result != None:
+                    if result is not None:
                         for k, v in result.items():
                             if k != -1:
                                 color[k] = v
@@ -385,14 +421,15 @@ def multicolumn_tabulate(rows, header, coloring):
                         v = "%*.*s" % (column_index_to_max_width[ci], column_index_to_max_width[ci], xs[i])
                     else:
                         v = "%-*.*s" % (column_index_to_max_width[ci], column_index_to_max_width[ci], xs[i])
-                    local_rows[i].append(v if color[ci] == None else colored(v, color[ci]))
+                    local_rows[i].append(v if color[ci] is None else colored(v, color[ci]))
                 else:
-                    local_rows[i].append(' '*column_index_to_max_width[ci])
+                    local_rows[i].append(' ' * column_index_to_max_width[ci])
         for local_row in local_rows:
             lines.append(" ".join(local_row))
     # finished
-    lines.append("") # to add the last new line
+    lines.append("")  # to add the last new line
     return "\n".join(lines)
+
 
 def output_table(params, header, data, coloring=None):
     """ output data in a table format.
@@ -415,7 +452,7 @@ def output_table(params, header, data, coloring=None):
             to all of the columns. For example, the following coloring means
             "if the 2nd column is even, it makes the 3rd column green, and
              if the 2nd column is 3, it makes all columns red".
-            
+
             def coloring_function(row):
                 if row[1] % 2 == 0: # the 2nd column (1st column in 0-origin) is even
                     return {3: 'green'}
@@ -426,7 +463,7 @@ def output_table(params, header, data, coloring=None):
     format = params.output_format
     if format == 'csv' or format == 'tsv':
         import csv
-        writer = csv.writer(os.sys.stdout, dialect = 'excel' if format == 'csv' else 'excel-tab')
+        writer = csv.writer(os.sys.stdout, dialect='excel' if format == 'csv' else 'excel-tab')
         if params.output_header: writer.writerow(header)
         writer.writerows(data)
     elif format == 'json':
@@ -441,7 +478,7 @@ def output_table(params, header, data, coloring=None):
             # See http://stackoverflow.com/questions/566746/how-to-get-console-window-width-in-python
             rowstr, columnstr = os.popen('stty size', 'r').read().split()
             rows, columns = int(rowstr), int(columnstr)
-            if is_debugging: print_info("ROW=%d, COL=%d, LINES=%d" % (rows, columns, len(lines)+2))
+            if is_debugging: print_info("ROW=%d, COL=%d, LINES=%d" % (rows, columns, len(lines) + 2))
             if rows < len(lines) + 2: return True
             ansi_escape = re.compile(r'\x1b[^m]*m')
             for rawl in lines:
@@ -462,6 +499,7 @@ def output_table(params, header, data, coloring=None):
         else:
             sys.stdout.write(output_string)
 
+
 def call_function_by_unambiguous_prefix(call_table, prefix_string, subargs):
     """ call a function by a given prefix string.
         call_table is a dictionary that maps a full string to a function.
@@ -479,15 +517,18 @@ def call_function_by_unambiguous_prefix(call_table, prefix_string, subargs):
     (_, func) = candidates[0]
     return func(subargs)
 
-def extract_name_from_tags(cs, default_no_name = "NO NAME"):
+
+def extract_name_from_tags(cs, default_no_name="NO NAME"):
     """ extract the host name from tags associated with an instance or vpc or subnet on Amazon EC2 """
-    if cs == None: return default_no_name
+    if cs is None: return default_no_name
     for d in cs:
         if 'Key' in d and d['Key'] == 'Name' and 'Value' in d: return d['Value']
     return default_no_name
 
+
 class NoneInstanceID:
     """ This exception is raised when a given instance ID is None. """
+
 
 def convert_host_name_to_instance(possible_instance_id, error_on_exit=True):
     """ Convert a given host name into the instance ID.
@@ -495,7 +536,7 @@ def convert_host_name_to_instance(possible_instance_id, error_on_exit=True):
         If the instance with the given host name exists, then return the instance.
         If there is no such instance, it prints an error and exits.
     """
-    if possible_instance_id == None: raise NoneInstanceID()
+    if possible_instance_id is None: raise NoneInstanceID()
     ec2 = get_ec2_connection()
     if re.match(r'^i-[0-9a-f]+$', possible_instance_id):
         instances = list(ec2.instances.filter(Filters=[{'Name': 'instance-id', 'Values': [possible_instance_id]}]))
@@ -503,7 +544,7 @@ def convert_host_name_to_instance(possible_instance_id, error_on_exit=True):
             if error_on_exit: error_exit("Cannot find a instance ID '%s'" % possible_instance_id)
             return None
         return instances[0]
-    instances = list(ec2.instances.filter(Filters=[{'Name':'tag:Name', 'Values': [possible_instance_id]}]))
+    instances = list(ec2.instances.filter(Filters=[{'Name': 'tag:Name', 'Values': [possible_instance_id]}]))
     if len(instances) <= 0:
         if error_on_exit: error_exit("Cannot find a host '%s'" % possible_instance_id)
         return None
@@ -513,8 +554,10 @@ def convert_host_name_to_instance(possible_instance_id, error_on_exit=True):
         return None
     return instances[0]
 
+
 class NoneVPCID:
     """ This exception is raised when a given VPC is None. """
+
 
 def convert_vpc_name_to_vpc(possible_vpc_id, error_on_exit=True):
     """ Convert a given VPC name into the VPC
@@ -522,7 +565,7 @@ def convert_vpc_name_to_vpc(possible_vpc_id, error_on_exit=True):
         If the VPC with the given VPC name exists, then return the VPC.
         If there is no such VPC, it prints an error and exits.
     """
-    if possible_vpc_id == None: raise NoneVPCID()
+    if possible_vpc_id is None: raise NoneVPCID()
     ec2 = get_ec2_connection()
     if re.match(r'^vpc-[0-9a-f]+$', possible_vpc_id):
         vpcs = list(ec2.vpcs.filter(Filters=[{'Name': 'vpc-id', 'Values': [possible_vpc_id]}]))
@@ -540,8 +583,10 @@ def convert_vpc_name_to_vpc(possible_vpc_id, error_on_exit=True):
         return None
     return vpcs[0]
 
+
 class NoneSubnetID:
     """ This exception is raised when a given subnet is None. """
+
 
 def convert_subnet_name_to_subnet(possible_subnet_id, error_on_exit=True):
     """ Convert a given subnet name into the subnet
@@ -549,7 +594,7 @@ def convert_subnet_name_to_subnet(possible_subnet_id, error_on_exit=True):
         If the subnet with the given subnet name exists, then return the subnet.
         If there is not such subnet, it prints an error and exits.
     """
-    if possible_subnet_id == None: raise NoneSubnetID()
+    if possible_subnet_id is None: raise NoneSubnetID()
     ec2 = get_ec2_connection()
     if re.match(r'^subnet-[0-9a-f]+$', possible_subnet_id):
         subnets = list(ec2.subnets.filter(Filters=[{'Name': 'subnet-id', 'Values': [possible_subnet_id]}]))
@@ -567,8 +612,10 @@ def convert_subnet_name_to_subnet(possible_subnet_id, error_on_exit=True):
         return None
     return subnets[0]
 
+
 class NoneSecurityGroupID:
     """ This exception is raised when a given security group is None. """
+
 
 def convert_sg_name_to_sg(possible_sg_id, error_on_exit=True):
     """ Convert a given security group name into the security group.
@@ -576,7 +623,7 @@ def convert_sg_name_to_sg(possible_sg_id, error_on_exit=True):
         If the security group with the given security group name exists, then return the security group.
         If there is no such security group, it prints an error and exits.
     """
-    if possible_sg_id == None: raise NoneSecurityGroupID()
+    if possible_sg_id is None: raise NoneSecurityGroupID()
     ec2 = get_ec2_connection()
     if re.match(r'sg-[0-9a-f]+$', possible_sg_id):
         sgs = list(ec2.security_groups.filter(Filters=[{'Name': 'group-id', 'Values': [possible_sg_id]}]))
@@ -594,13 +641,15 @@ def convert_sg_name_to_sg(possible_sg_id, error_on_exit=True):
         return None
     return sgs[0]
 
+
 def get_root_like_user_from_instance(instance):
     """ get a root-like user (eg, ec2-user) from an instance """
     for t in instance.tags:
         if t['Key'] == 'root':
             return t['Value']
     print_info("'root' tag does not exist for this instance.\nThe user name is 'ec2-user' unless you specify it by option")
-    return 'ec2-user' # default
+    return 'ec2-user'  # default
+
 
 def ssh_like_call(params, command_name, hostname_or_instance_id, command_args):
     """ call an SSH-like command to login into a specified host with specified arguments
@@ -610,7 +659,7 @@ def ssh_like_call(params, command_name, hostname_or_instance_id, command_args):
         command_args is a list of arguments passed to command_name.
     """
     instance = convert_host_name_to_instance(hostname_or_instance_id)
-    if instance.public_ip_address == None:
+    if instance.public_ip_address is None:
         error_exit("The instance has no public IP address")
     # root user
     root_user = get_root_like_user_from_instance(instance)
@@ -630,15 +679,17 @@ def ssh_like_call(params, command_name, hostname_or_instance_id, command_args):
     except:
         pass
 
+
 def convert_zone_name_to_zone_id(zone_name, error_on_exit=True):
     """ convert an Route53 zone name to the corresponding zone ID """
-    if zone_name != None and not zone_name.endswith('.'): zone_name += '.'
+    if zone_name is not None and not zone_name.endswith('.'): zone_name += '.'
     r53 = get_r53_connection()
     possible_zone_ids = [i['Id'] for i in r53.list_hosted_zones()['HostedZones'] if i['Name'] == zone_name]
     if 0 >= len(possible_zone_ids):
         if error_on_exit: error_exit("No such zone '%s'" % zone_name)
         return None
     return possible_zone_ids[0]
+
 
 def decompose_rpath(rpath):
     """ decompose an SCP-style path into components.
@@ -649,6 +700,7 @@ def decompose_rpath(rpath):
     """
     r = re.match(r'^(((.*?)@)?(.*?):)?(.*)$', rpath)
     return (r.group(3), r.group(4), r.group(5))
+
 
 def parse_port_string(port_str):
     if port_str == 'any' or port_str == 'all': return -1, -1
@@ -666,6 +718,7 @@ def parse_port_string(port_str):
     except:
         error_exit("'%s' or '%s' is not an integer" % (sarr[0], sarr[1]))
     return v1, v2
+
 
 def parse_protocol_port_string(prot_port_str):
     port_arr = prot_port_str.split("/")
@@ -688,6 +741,7 @@ def parse_protocol_port_string(prot_port_str):
         error_exit("unknown protocol '%s'" % port_arr[0])
     return protocol, target_port_low, target_port_high
 
+
 def expand_cidr_string(unexpanded_cidr_string):
     """ expand a given CIDR string.
         1) Normal CIDR strings are returned as is.
@@ -702,13 +756,14 @@ def expand_cidr_string(unexpanded_cidr_string):
         if sys.version_info < (3, 0):
             # NOTE: not tested
             import pystun
-            nat_type, external_ip, external_port = stun.get_ip_info()
+            nat_type, external_ip, external_port = stun.get_ip_info()  # noqa: F821
             if nat_type == pystun.Blocked:
                 error_exit("Cannot reach to a STUN server so cannot find my external IP")
             return external_ip
         else:
             error_exit("'self' can be used only with Python 2.x because a dependent library is not compatible with Python 3.x")
     return unexpanded_cidr_string
+
 
 def is_private_cidr(cidr_str):
     """ return a pentuple (eg. (1, 2, 3, 4, 5) for '1.2.3.4/5') if a given string is a private CIDR (eg. 192.168.1.0/24).
@@ -723,12 +778,13 @@ def is_private_cidr(cidr_str):
         return None
     if not (0 <= mask_bits <= 32): return None
     addr = is_private_ip(arr[0])
-    if addr == None or addr == False: return None
+    if addr is None or not addr: return None
     b1, b2, b3, b4 = addr
     if b1 == 10 and 8 <= mask_bits: return (b1, b2, b3, b4, mask_bits)
     if b1 == 172 and 16 <= b2 <= 31 and 11 <= mask_bits: return (b1, b2, b3, b4, mask_bits)
     if b1 == 192 and b2 == 168 and 16 <= mask_bits: return (b1, b2, b3, b4, mask_bits)
     return False
+
 
 def is_private_ip(ip_str):
     """ return a quadruple if a given string is a private IP.
@@ -750,8 +806,10 @@ def is_private_ip(ip_str):
     if b1 == 192 and b2 == 168: return (b1, b2, b3, b4)
     return False
 
+
 def get_AMI_DB_file_path():
     return os.path.join(os.path.expanduser("~/.aws"), "ami_db.sqlite3")
+
 
 def ensure_AMI_DB_exist():
     """ ensure that the AMI database exists.
@@ -764,15 +822,16 @@ def ensure_AMI_DB_exist():
     conn.commit()
     conn.close()
 
+
 def register_AMI_ID_to_local_database(do_not_open_browser):
     """ Register AMIs to the AMI database that is located on local disk """
     ensure_AMI_DB_exist()
     if not do_not_open_browser:
-        basic_url =('https://aws.amazon.com/marketplace/search/results?page=1&' +
-                    'filters=operating_system%2Cfulfillment_options%2Carchitectures%2Cregions&' +
-                    'operating_system=AMAZONLINUX%2CDEBIAN%2CCENTOS%2CRHEL%2CUBUNTU&' +
-                    'fulfillment_options=AMI&architectures=64-bit&' +
-                    'regions=' + param_region)
+        basic_url = ('https://aws.amazon.com/marketplace/search/results?page=1&' +
+                     'filters=operating_system%2Cfulfillment_options%2Carchitectures%2Cregions&' +
+                     'operating_system=AMAZONLINUX%2CDEBIAN%2CCENTOS%2CRHEL%2CUBUNTU&' +
+                     'fulfillment_options=AMI&architectures=64-bit&' +
+                     'regions=' + param_region)
         print_info("Launching a web browser.\nPlease select one and click on 'Continue',\nand then select 'Manual Launch' tab.\n" +
                    "You need to agree with Terms and Conditions,\nafter which you expand a 'launch'.\n" +
                    "You see a bunch of AMI IDs there.\n" +
@@ -805,7 +864,7 @@ def register_AMI_ID_to_local_database(do_not_open_browser):
                             if re.search(v, region_nickname, re.I):
                                 region_id = k
                                 break
-                        if region_id == None: region_id = region_nickname
+                        if region_id is None: region_id = region_nickname
                         ami_ids.append({'Region': region_id, 'AMI': ami_id})
                     line_index += 1
             elif re.match('EC2 Instance Type', l, re.I):
@@ -825,7 +884,7 @@ def register_AMI_ID_to_local_database(do_not_open_browser):
             print("Image name:")
             print("\t" + image_name)
             print(type(image_name))
-        if image_name == None or image_name == '':
+        if image_name is None or image_name == '':
             print_warning("Image name is missing. Retry.")
             continue
         if is_debugging: print("AMI IDs:", ami_ids)
@@ -844,7 +903,7 @@ def register_AMI_ID_to_local_database(do_not_open_browser):
 
     db_path = get_AMI_DB_file_path()
     conn = sqlite3.connect(db_path)
-    conn.execute("DELETE FROM ami_ids WHERE name = ?", (image_name,) )
+    conn.execute("DELETE FROM ami_ids WHERE name = ?", (image_name,))
     conn.execute("INSERT INTO ami_ids VALUES(?, ?, ?)", (image_name,
             pickle.dumps(region_name_to_ami_id), pickle.dumps(instance_type_to_cost)))
     conn.commit()
@@ -853,17 +912,19 @@ def register_AMI_ID_to_local_database(do_not_open_browser):
     if not do_not_open_browser:
         print_info("If you wish to continue registering more AMI, please execute the same command with '-n' option")
 
-def wait_for_clipboard_to_update(minimum_size = 0):
+
+def wait_for_clipboard_to_update(minimum_size=0):
     """ Wait for something of more than or equal to minimum_size bytes to be copied to the clipboard.
         The return value is the content of the clipboard (in plain text).
     """
     if minimum_size == 0 or minimum_size <= len(pyperclip.paste()):
-        pyperclip.copy('') # clear the clipboard
+        pyperclip.copy('')  # clear the clipboard
     while True:
         t = pyperclip.paste()
-        if t != None and t != '' and minimum_size <= len(t):
+        if t is not None and t != '' and minimum_size <= len(t):
             return t
         time.sleep(1)
+
 
 def update_recommended_image_cache():
     """ Update the file that contains recommended AWS EC2 images (eg., RetHat Enterprise Linux, Amazon Linux, Cent OS, Ubuntu, etc.) """
@@ -871,8 +932,10 @@ def update_recommended_image_cache():
     ec2 = get_ec2_connection()
     images = ec2.images.filter(Owners=['self'])
 
+
 class PrefixCompleter:
     not_yet_initialized = True
+
     def __init__(self, candidate_strings):
         self.candidate_strings = sorted(candidate_strings)
         if PrefixCompleter.not_yet_initialized:
@@ -885,8 +948,9 @@ class PrefixCompleter:
         if index < len(fl): return fl[index]
         return None
 
+
 def get_default_content_type(file_name):
     """ get the default content type from a given file name """
     mime_type, compress_type = mimetypes.guess_type(file_name)
-    if mime_type != None: return mime_type
+    if mime_type is not None: return mime_type
     return "application/octet-stream"
