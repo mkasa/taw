@@ -2,10 +2,11 @@
 
 from __future__ import print_function
 from __future__ import absolute_import
-import os, sys, click
+import os, click
 from taw.util import *
-from taw.taw import * # This must be the end of imports
+from taw.taw import *  # This must be the end of imports
 from six.moves import input
+
 
 # ==================
 #  INSTANCE COMMAND
@@ -14,6 +15,7 @@ from six.moves import input
 @pass_global_parameters
 def instance_group(params):
     """ manage Amazon EC2 instances """
+
 
 @instance_group.command("stop")
 @click.argument('hostnames', nargs=-1, metavar='<host names>')
@@ -31,6 +33,7 @@ def stop_cmd(params, hostnames, force):
     else:
         print("Please add --force to actually stop the instances")
 
+
 @instance_group.command("start")
 @click.argument('hostnames', nargs=-1, metavar='<host names>')
 @pass_global_parameters
@@ -40,6 +43,7 @@ def start_cmd(params, hostnames):
         instance = convert_host_name_to_instance(hostname)
         instance.start(DryRun=params.aws_dryrun)
     print_info("%d hosts processed" % len(hostnames))
+
 
 @instance_group.command("terminate")
 @click.argument('hostnames', nargs=-1, metavar='<host names>')
@@ -57,6 +61,7 @@ def terminate_cmd(params, hostnames, force):
     else:
         print_warning("Please add --force to actually TERMINATE the instance(s).\nOnce you terminate them, they will be LOST.")
 
+
 @instance_group.command("register_market_ami", short_help='get machine image IDs of popular OS')
 @click.option('-n', is_flag=True)
 @pass_global_parameters
@@ -64,6 +69,7 @@ def register_market_ami_instancecmd(params, n):
     """ Get Amazon Machine Image ID (AMI ID) from the AWS web site
     """
     register_AMI_ID_to_local_database(n)
+
 
 @instance_group.command("set_instance_type", short_help='set instance type')
 @click.argument('new_instance_name', metavar='<new instance name>')
@@ -75,6 +81,7 @@ def change_instance_type_instancecmd(params, hostname, new_instance_name):
     instance.modify_attribute(DryRun=params.aws_dryrun,
                               Attribute='instanceType',
                               Value=new_instance_name)
+
 
 @instance_group.command("set_api_termination", short_help='allow/disallow API termination')
 @click.argument('hostname', metavar='<host name>')
@@ -92,6 +99,7 @@ def set_api_termination_instancecmd(params, hostname, allow, disallow):
                               Attribute='disableApiTermination',
                               Value='False' if allow else 'True')
 
+
 @instance_group.command("set_ebs_optimization", short_help='enable/disable EBS optimization')
 @click.option('--on', is_flag=True, help="turn on EBS optimization")
 @click.option('--off', is_flag=True, help="turn off EBS optimization")
@@ -108,13 +116,14 @@ def set_ebs_optimization_instancecmd(params, hostname, on, off):
                               Attribute='ebsOptimized',
                               Value='False' if off else 'True')
 
+
 def ask_instance_name_interactively(ctx, params, name):
-    if name == None:
+    if name is None:
         print("")
         print("Name a new instance. Type '?' for listing current instances. CTRL+C to quit.")
     ec2 = get_ec2_connection()
     while True:
-        while name == None:
+        while name is None:
             print("")
             new_name = input("  Name: ")
             if new_name.startswith('?'):
@@ -126,7 +135,7 @@ def ask_instance_name_interactively(ctx, params, name):
             print_warning("Name '%s' is invalid (contains illegal character(s))" % name)
             name = None
             continue
-        instances = list(ec2.instances.filter(Filters=[{'Name':'tag:Name', 'Values': [name]}]))
+        instances = list(ec2.instances.filter(Filters=[{'Name': 'tag:Name', 'Values': [name]}]))
         if 0 < len(instances):
             print_warning("An instance with name '%s' already exists (ID=%s).\nTry with another name." % (name, instances[0].id))
             name = None
@@ -134,14 +143,15 @@ def ask_instance_name_interactively(ctx, params, name):
         break
     return name
 
+
 def ask_instance_type_interactively(ctx, params, instancetype):
-    if instancetype == None:
+    if instancetype is None:
         print("")
         print("Choose an instance type. Type '?' for listing instance types. CTRL+C to quit.")
         print("To list specific types of instances, type '?prefix' (eg: ?t2)")
     completer = PrefixCompleter(instance_type_name_to_instance_type.keys()); readline.set_completer(completer.completer)
     while True:
-        while instancetype == None:
+        while instancetype is None:
             print("")
             new_inst = input("  Instance type: ")
             if new_inst.startswith('?'):
@@ -156,27 +166,28 @@ def ask_instance_type_interactively(ctx, params, instancetype):
                 continue
             if new_inst == '': continue
             instancetype = new_inst
-        if not instancetype in instance_type_name_to_instance_type:
+        if instancetype not in instance_type_name_to_instance_type:
             print_warning("%s is not a valid instance type" % instancetype)
             instancetype = None
             continue
         break
     return instancetype
 
+
 def ask_ami_id_interactively(ctx, params, ami_id):
     ami_name = '(unknown)'
     db_path = get_AMI_DB_file_path()
     conn = sqlite3.connect(db_path)
     completion_candidates = [sql_row[0] for sql_row in conn.execute("SELECT * FROM ami_ids;")]
-    if ami_id == None and len(completion_candidates) <= 0:
+    if ami_id is None and len(completion_candidates) <= 0:
         error_exit("You have to register AMI ID first. Type 'taw instance register_market_ami'.\nAlternatively you can directly specify an AMI ID if you know one.")
     completer = PrefixCompleter(completion_candidates); readline.set_completer(completer.completer)
-    if ami_id == None:
+    if ami_id is None:
         print("")
         print("Enter an AMI ID you want to launch from. Alternatively you can type a part of the name of AMI.")
         print("Type '?' for listing registered AMIs. You can search abc for typing '?abc'. CTRL+C to quit.")
     while True:
-        while ami_id == None:
+        while ami_id is None:
             print("")
             new_ami_id = input("  AMI ID (or keyword): ")
             if new_ami_id.startswith('?'):
@@ -212,15 +223,16 @@ def ask_ami_id_interactively(ctx, params, ami_id):
         break
     return ami_id, ami_name
 
+
 def ask_vpc_interactively(ctx, params, vpc_id):
-    if vpc_id == None:
+    if vpc_id is None:
         print("")
         print("Choose a VPC. Type '?' for listing VPC. CTRL+C to quit.")
     ec2 = get_ec2_connection()
     completion_candidates = [extract_name_from_tags(i.tags) for i in ec2.vpcs.all()]
     completer = PrefixCompleter(completion_candidates); readline.set_completer(completer.completer)
     while True:
-        while vpc_id == None:
+        while vpc_id is None:
             print("")
             input_str = input("  VPC ID or name: ")
             if input_str.startswith('?'):
@@ -232,7 +244,7 @@ def ask_vpc_interactively(ctx, params, vpc_id):
             if input_str == '': continue
             vpc_id = input_str
         vpc = convert_vpc_name_to_vpc(vpc_id)
-        if vpc == None:
+        if vpc is None:
             print_warning("No such VPC. Try with another name or ID.")
             vpc_id = None
             continue
@@ -240,15 +252,16 @@ def ask_vpc_interactively(ctx, params, vpc_id):
         break
     return vpc_id
 
+
 def ask_subnet_interactively(ctx, params, vpc_id, subnet):
-    if subnet == None:
+    if subnet is None:
         print("")
         print("Choose a subnet. Type '?' for listing subnet. CTRL+C to quit.")
     ec2 = get_ec2_connection()
-    completion_candidates = [extract_name_from_tags(i.tags) for i in ec2.subnets.filter(Filters=[{'Name': 'vpc-id', 'Values':[vpc_id]}])]
+    completion_candidates = [extract_name_from_tags(i.tags) for i in ec2.subnets.filter(Filters=[{'Name': 'vpc-id', 'Values': [vpc_id]}])]
     completer = PrefixCompleter(completion_candidates); readline.set_completer(completer.completer)
     while True:
-        while subnet == None:
+        while subnet is None:
             print("")
             input_str = input("  Subnet ID or name: ")
             if input_str.startswith('?'):
@@ -257,8 +270,8 @@ def ask_subnet_interactively(ctx, params, vpc_id, subnet):
             # TODO: allow users to create a new subnet
             if input_str == '': continue
             subnet = input_str
-        subnet = convert_subnet_name_to_subnet(subnet) # TODO: any chance there are multiple subnets with the same name (but with differnt VPC ID?)
-        if subnet == None:
+        subnet = convert_subnet_name_to_subnet(subnet)  # TODO: any chance there are multiple subnets with the same name (but with differnt VPC ID?)
+        if subnet is None:
             print_warning("No such subnet.")
             subnet = None
             continue
@@ -266,15 +279,16 @@ def ask_subnet_interactively(ctx, params, vpc_id, subnet):
         break
     return subnet
 
+
 def ask_key_interactively(ctx, params, keyname):
-    if keyname == None:
+    if keyname is None:
         print("")
         print("Choose a private key. Type '?' for listing keys. CTRL+C to quit.")
     ec2 = get_ec2_connection()
     completion_candidates = [k.key_name for k in ec2.key_pairs.all()]
     completer = PrefixCompleter(completion_candidates); readline.set_completer(completer.completer)
     while True:
-        while keyname == None:
+        while keyname is None:
             print("")
             input_str = input("  Key name: ")
             if input_str.startswith('?'):
@@ -305,6 +319,7 @@ def ask_key_interactively(ctx, params, keyname):
             continue
         break
     return keyname
+
 
 def ask_security_group_interactively(ctx, params, vpc_id, subnet_id, securitygroup):
     if len(securitygroup) <= 0:
@@ -359,6 +374,7 @@ def ask_security_group_interactively(ctx, params, vpc_id, subnet_id, securitygro
             break
     return securitygroup
 
+
 def ask_shutdownbehavior_interactively(shutdownbehavior):
     if shutdownbehavior != 'stop' and shutdownbehavior != 'terminate':
         print("")
@@ -372,6 +388,7 @@ def ask_shutdownbehavior_interactively(shutdownbehavior):
         shutdownbehavior = input("  When shutdown, should it [stop/terminate]? ")
     return shutdownbehavior
 
+
 def ask_if_not_set(explanation_string, current_flag):
     if current_flag: return current_flag
     print("")
@@ -384,6 +401,7 @@ def ask_if_not_set(explanation_string, current_flag):
         if re.match("y(e(s)?)?", a, re.I): return True
         if re.match("no?", a, re.I): return False
         print("yes or no.")
+
 
 def ask_if_need_change(property_name, explanation_string, current_choice):
     print("")
@@ -404,6 +422,7 @@ def ask_if_need_change(property_name, explanation_string, current_choice):
         if re.match("no?", a, re.I): return False
         print("yes or no.")
 
+
 def estimate_root_accout_name_from_ami_name(ami_name):
     # https://alestic.com/2014/01/ec2-ssh-username/
     if re.search("ubuntu", ami_name, re.I): return 'ubuntu'
@@ -415,6 +434,7 @@ def estimate_root_accout_name_from_ami_name(ami_name):
     if re.search("nanostack", ami_name, re.I): return 'ubuntu'
     if re.search("omnios", ami_name, re.I): return 'ubuntu'
     return 'ec2-user'
+
 
 @instance_group.command("launch", short_help='launch(run) a new instance interactively')
 @click.option('--name')
@@ -457,20 +477,10 @@ def launch_instancecmd(ctx, params, name, instancetype, amiid, keyname, vpc, sub
         root_account_name = ask_if_need_change("root (sudo) account", "The root account we guessed is right?", root_account_name)
 
     print("")
-    print("="*70)
-    print("Machine count          :", count)
-    print("Name                   :", name)
-    print("AMI ID                 :", amiid)
-    print("AMI Name               :", ami_name)
-    print("Instance type          :", instancetype)
-    print("Subnet ID              :", subnet)
-    print("VPC ID                 :", vpc)
-    print("Key name               :", keyname)
-    print("Security groups        :", ", ".join(securitygroup))
-    print("Disable API termination:", disableapitermination)
+    print("=" * 70)
     print("EBS optimiation        :", ebsoptimized)
     print("root (sudo) account    :", root_account_name)
-    print("="*70)
+    print("=" * 70)
     print("You can retry this with the following command:")
     print("")
     cmd_line = "taw instance launch --count %d --name %s --instancetype %s --amiid %s --vpc %s --subnet %s --shutdownbehavior %s --keyname %s" % (
@@ -481,7 +491,7 @@ def launch_instancecmd(ctx, params, name, instancetype, amiid, keyname, vpc, sub
     if disableapitermination: cmd_line += ' --disableapitermination'
     if ebsoptimized: cmd_line += ' --ebsoptimized'
     print(cmd_line)
-    print("="*70)
+    print("=" * 70)
     ec2 = get_ec2_connection()
     print("")
     print("Creating new instance(s) ...")
@@ -492,24 +502,24 @@ def launch_instancecmd(ctx, params, name, instancetype, amiid, keyname, vpc, sub
         KeyName=keyname,
         InstanceType=instancetype,
         # Placement={
-            # 'AvailabilityZone': 'string',
-            # 'GroupName': 'string',
-            # 'Tenancy': 'default',
-            # 'HostId': 'string',
-            # 'Affinity': 'string'
+        #     'AvailabilityZone': 'string',
+        #     'GroupName': 'string',
+        #     'Tenancy': 'default',
+        #     'HostId': 'string',
+        #     'Affinity': 'string'
         # },
         # BlockDeviceMappings=[
-            # ],
+        #     ],
         DisableApiTermination=disableapitermination,
         InstanceInitiatedShutdownBehavior='stop',
         EbsOptimized=ebsoptimized,
         NetworkInterfaces=[
             {
-                'DeviceIndex' : 0,
+                'DeviceIndex': 0,
                 'SubnetId': subnet,
                 'Groups': securitygroup,
                 'AssociatePublicIpAddress': True},
-            ],
+            ],  # noqa: E123
     )
     result_instances = list(result_instances)
     if len(result_instances) <= 0: error_exit("Could not create any instance(s)")
@@ -518,14 +528,14 @@ def launch_instancecmd(ctx, params, name, instancetype, amiid, keyname, vpc, sub
         while True:
             try:
                 inst.create_tags(Tags=[
-                    {'Key': 'Name',       'Value': name},
-                    {'Key': 'root',       'Value': root_account_name},
-                    ])
+                    {'Key': 'Name', 'Value': name}             ,  # noqa: E203
+                    {'Key': 'root', 'Value': root_account_name},
+                    ])  # noqa: E123
                 break
             except Exception as e:
                 print(e)
                 print("\nWait for %d seconds..." % wait_interval_in_sec)
-                time.sleep(wait_interval_in_sec) # interval
+                time.sleep(wait_interval_in_sec)  # interval
                 wait_interval_in_sec += 3
         print("Successfully created an instance with ID = %s" % inst.id)
     print("Done.")
@@ -538,9 +548,10 @@ def list_instancecmd(ctx, args):
     """ list instances """
     with taw.make_context('taw', ctx.obj.global_opt_str + ['list', 'instance'] + list(args)) as ncon: _ = taw.invoke(ncon)
 
+
 @instance_group.command("showprice", add_help_option=False, context_settings=dict(ignore_unknown_options=True))
 @click.argument('args', nargs=-1, type=click.UNPROCESSED)
 @click.pass_context
-def list_instancecmd(ctx, args):
+def showprice_instancecmd(ctx, args):
     """ list the price for each instance type """
     with taw.make_context('taw', ctx.obj.global_opt_str + ['list', 'price'] + list(args)) as ncon: _ = taw.invoke(ncon)
