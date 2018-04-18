@@ -244,6 +244,7 @@ def ask_vpc_interactively(ctx, params, vpc_id):
         print("Choose a VPC. Type '?' for listing VPC. CTRL+C to quit.")
     ec2 = get_ec2_connection()
     completion_candidates = [extract_name_from_tags(i.tags) for i in ec2.vpcs.all()]
+    completion_candidates += [i.id for i in ec2.vpcs.all()]
     completer = PrefixCompleter(completion_candidates); readline.set_completer(completer.completer)
     while True:
         while vpc_id is None:
@@ -273,13 +274,14 @@ def ask_subnet_interactively(ctx, params, vpc_id, subnet):
         print("Choose a subnet. Type '?' for listing subnet. CTRL+C to quit.")
     ec2 = get_ec2_connection()
     completion_candidates = [extract_name_from_tags(i.tags) for i in ec2.subnets.filter(Filters=[{'Name': 'vpc-id', 'Values': [vpc_id]}])]
+    completion_candidates += [i.id for i in ec2.subnets.filter(Filters=[{'Name': 'vpc-id', 'Values': [vpc_id]}])]
     completer = PrefixCompleter(completion_candidates); readline.set_completer(completer.completer)
     while True:
         while subnet is None:
             print("")
             input_str = input("  Subnet ID or name: ")
             if input_str.startswith('?'):
-                with taw.make_context('taw', ctx.obj.global_opt_str + ['list', 'subnet']) as ncon: _ = taw.invoke(ncon)
+                with taw.make_context('taw', ctx.obj.global_opt_str + ['list', 'subnet', vpc_id]) as ncon: _ = taw.invoke(ncon)
                 continue
             # TODO: allow users to create a new subnet
             if input_str == '': continue
@@ -342,6 +344,7 @@ def ask_security_group_interactively(ctx, params, vpc_id, subnet_id, securitygro
         print("Input a security group name or ID. You can enter multiple security groups; if done, type '-'.")
     ec2 = get_ec2_connection()
     candidates = [i.group_name for i in ec2.security_groups.filter(Filters=[{'Name': 'vpc-id', 'Values': [vpc_id]}])]
+    candidates += [i.id for i in ec2.security_groups.filter(Filters=[{'Name': 'vpc-id', 'Values': [vpc_id]}])]
     completer = PrefixCompleter(candidates); readline.set_completer(completer.completer)
     while True:
         security_group_candidates = []
@@ -462,11 +465,13 @@ def estimate_root_accout_name_from_ami_name(ami_name):
 @click.option('--keyname', help="Name of SSH private key you use")
 @click.option('--count', default=1, type=int, help="Number of instances you need to launch")
 @click.option('--ebsoptimized', is_flag=True, help="Use optimized EBS backend")
+@click.option('--noebsoptimized', is_flag=True, help="Do not use optimized EBS backend")
 @click.option('--securitygroup', multiple=True)
 @click.option('--disableapitermination', is_flag=True, help="Prevent a new instance from being terminated by API")
+@click.option('--enableapitermination', is_flag=True, help="Allow termination by API")
 @pass_global_parameters
 @click.pass_context
-def launch_instancecmd(ctx, params, name, instancetype, amiid, keyname, vpc, subnet, count, ebsoptimized, disableapitermination, securitygroup, shutdownbehavior, rootaccount, ami_name):
+def launch_instancecmd(ctx, params, name, instancetype, amiid, keyname, vpc, subnet, count, ebsoptimized, noebsoptimized, disableapitermination, enableapitermination, securitygroup, shutdownbehavior, rootaccount, ami_name):
     """ Launch a new instance interactively """
 
     try:
@@ -481,8 +486,14 @@ def launch_instancecmd(ctx, params, name, instancetype, amiid, keyname, vpc, sub
     vpc = ask_vpc_interactively(ctx, params, vpc)
     subnet = ask_subnet_interactively(ctx, params, vpc, subnet)
     securitygroup = ask_security_group_interactively(ctx, params, vpc, subnet, list(securitygroup))
-    disableapitermination = ask_if_not_set("Disable API termination? If set, you cannot DIRECTLY terminate the instance from taw.", disableapitermination)
-    ebsoptimized = ask_if_not_set("Need EBS optimization? If set, you get faster storage but pay more. Not available for all instance types.", ebsoptimized)
+    if enableapitermination:
+        disableApiTermination = False
+    else:
+        disableapitermination = ask_if_not_set("Disable API termination? If set, you cannot DIRECTLY terminate the instance from taw.", disableapitermination)
+    if noebsoptimized:
+        ebsoptimized = False
+    else:
+        ebsoptimized = ask_if_not_set("Need EBS optimization? If set, you get faster storage but pay more. Not available for all instance types.", ebsoptimized)
     shutdownbehavior = ask_shutdownbehavior_interactively(shutdownbehavior)
     if rootaccount:
         root_account_name = rootaccount
@@ -502,8 +513,14 @@ def launch_instancecmd(ctx, params, name, instancetype, amiid, keyname, vpc, sub
     cmd_line += ''.join(map(lambda x: " --securitygroup " + x, securitygroup))
     cmd_line += " --rootaccount " + root_account_name
     cmd_line += " --ami_name '" + ami_name + "'"
-    if disableapitermination: cmd_line += ' --disableapitermination'
-    if ebsoptimized: cmd_line += ' --ebsoptimized'
+    if disableapitermination:
+        cmd_line += ' --disableapitermination'
+    else:
+        cmd_line += ' --enableapitermination'
+    if ebsoptimized:
+        cmd_line += ' --ebsoptimized'
+    else:
+        cmd_line += ' --noebsoptimized'
     print(cmd_line)
     print("=" * 70)
     ec2 = get_ec2_connection()

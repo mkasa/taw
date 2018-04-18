@@ -136,7 +136,7 @@ def list_cmd(params, restype, verbose, argdoc, attr, subargs, allregions):
             error_exit(str(e) + "\nNo such attribute.\nTry 'taw list --argdoc' to see all attributes.")
         output_table(params, header, rows)
 
-    def list_subnet(dummy_argument):
+    def list_subnet(vpc_id_if_any):
         """ list subnets """
         if argdoc:
             click.launch('https://boto3.readthedocs.io/en/latest/reference/services/ec2.html#subnet')
@@ -161,9 +161,15 @@ def list_cmd(params, restype, verbose, argdoc, attr, subargs, allregions):
         try:
             for subnet in subnets:
                 row = [f(getattr(subnet, i)) for _, i, _, f in list_columns]
-                row.append([extract_name_from_tags(i.tags) for i in vpcs if i.vpc_id == subnet.vpc_id])
+                vpc_is_found = False
+                for i in vpcs:
+                    if i.vpc_id == subnet.vpc_id:
+                        if len(vpc_id_if_any) == 0 or i.vpc_id in vpc_id_if_any:
+                            vpc_is_found = True
+                            row.append([extract_name_from_tags(i.tags)])
                 row.append([extract_name_from_tags(i.tags) for i in instances if i.subnet_id == subnet.subnet_id])
-                rows.append(row)
+                if vpc_is_found:
+                    rows.append(row)
         except AttributeError as e:
             error_exit(str(e) + "\nNo such attribute.\nTry 'taw list --argdoc' to see all attributes.")
         output_table(params, header, rows)
