@@ -832,12 +832,14 @@ def register_AMI_ID_to_local_database(do_not_open_browser):
                      'operating_system=AMAZONLINUX%2CDEBIAN%2CCENTOS%2CRHEL%2CUBUNTU&' +
                      'fulfillment_options=AMI&architectures=64-bit&' +
                      'regions=' + param_region)
-        print_info("Launching a web browser.\nPlease select one and click on 'Continue',\nand then select 'Manual Launch' tab.\n" +
-                   "You need to agree with Terms and Conditions,\nafter which you expand a 'launch'.\n" +
-                   "You see a bunch of AMI IDs there.\n" +
-                   "Then you copy everything (press CMD+A, CMD+C for macOS, CTRL+A, CTRL+C for Windows) to the clipboard\n" +
-                   "We analyze the copied text and bring you to the next step.")
+        print_info("Launching a web browser.\n1. please select a machine image, and click on 'Continue',\n2. select 'Manual Launch' tab.\n" +
+                   "3. you need to agree with Terms and Conditions (you do not need to do it again for the same machine image),\n" +
+                   "4. you expand a 'launch'.\n" +
+                   "5a. you see a bunch of AMI IDs there.\n" +
+                   "5b. you copy everything (press CMD+A, CMD+C for macOS, CTRL+A, CTRL+C for Windows) to the clipboard.\n" +
+                   "6. we analyze the copied text and bring you to the next step.")
         click.launch(basic_url)
+    # is_debugging = True
     while True:
         txt = wait_for_clipboard_to_update(512)
         print_info("Detected an update in the clipboard.")
@@ -849,17 +851,23 @@ def register_AMI_ID_to_local_database(do_not_open_browser):
         while line_index < len(lines):
             l = lines[line_index]
             if re.match('Launch on EC2:', l, re.I):
+                if is_debugging: print("Launch on EC2")
                 image_name = lines[line_index + 1]; line_index += 1
+                if is_debugging: print("  Image Name: %s" % image_name)
             elif re.match(r'Region\s+ID', l, re.I):
+                if is_debugging: print("Span Region Start")
                 line_index += 1
                 while line_index < len(lines):
                     m = lines[line_index]
-                    if re.match('Security Group', m, re.I): break
-                    res = re.match(r'(.*?)\s+(ami-[0-9a-f]+)\s+Launch', m, re.I)
+                    if re.match('Security Group', m, re.I):
+                        if is_debugging: print("Span Region End")
+                        break
+                    res = re.match(r'.*\((.*?)\)\s+(ami-[0-9a-f]+)', m, re.I)
                     if res:
                         region_nickname = res.group(1)
                         ami_id = res.group(2)
                         region_id = None
+                        if is_debugging: print("  Image %s at %s" % (ami_id, region_nickname))
                         for k, v in region_name_to_region_nickname.items():
                             if re.search(v, region_nickname, re.I):
                                 region_id = k
@@ -868,11 +876,14 @@ def register_AMI_ID_to_local_database(do_not_open_browser):
                         ami_ids.append({'Region': region_id, 'AMI': ami_id})
                     line_index += 1
             elif re.match('EC2 Instance Type', l, re.I):
+                if is_debugging: print("Instance Type Start")
                 line_index += 1
                 while line_index < len(lines):
                     m = lines[line_index]
-                    if re.match('EBS Magnetic volumes', m, re.I): break
-                    res = re.match(r'(.*?)\s+\$(\d+\.\d+)/hr\s+\$(\d+\.\d+)/hr\s+\$(\d+\.\d+)/hr', m, re.I)
+                    if re.match('EBS .* volumes', m, re.I):
+                        if is_debugging: print("Instance Type End")
+                        break
+                    res = re.match(r'(.*?)\s+\$(\d+\.\d+)\s+\$(\d+\.\d+)\s+\$(\d+\.\d+)', m, re.I)
                     if res:
                         cost_table.append({'InstanceType': res.group(1), 'CostForLicense': res.group(2), 'CostForInstance': res.group(3), 'CostTotal': res.group(4)})
                     res = re.match(r'(.*?)\s+\$(\d+\.\d+)/hr', m, re.I)
