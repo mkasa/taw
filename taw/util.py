@@ -648,6 +648,8 @@ def get_root_like_user_from_instance(instance):
         if t['Key'] == 'root':
             return t['Value']
     print_info("'root' tag does not exist for this instance.\nThe user name is 'ec2-user' unless you specify it by option")
+    print_info("Please consider setting the root (sudo) user such as (note: change the username if needed):\n" +
+               "  taw instance settag %s root ec2-user" % instance.id)
     return 'ec2-user'  # default
 
 
