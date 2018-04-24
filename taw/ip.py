@@ -74,6 +74,30 @@ def disassociate_ipcmd(params, association_id):
     addr = ec2_client.disassociate_address(AssociationId=association_id)
 
 
+@ip_group.command("name")
+@click.argument('eip_id')
+@click.argument('name')
+@pass_global_parameters
+def name_ipcmd(param, eip_id, name):
+    """ name a specified Elastic IP """
+    ec2 = get_ec2_connection()
+    eips = list(ec2.vpc_addresses.filter(Filters=[{'Name': 'allocation-id', 'Values': [eip_id]}]))
+    if len(eips) <= 0: error_exit("No such association ID ('%s')" % eip_id)
+    for eip in eips:
+        ec2.create_tags(Resources=[eip_id], Tags=[{'Key': 'Name', 'Value': name}])
+
+
+@ip_group.command("ip")
+@click.argument('name')
+@pass_global_parameters
+def ip_ipcmd(param, name):
+    """ show an IP associated with a specified Elastic IP """
+    ec2 = get_ec2_connection()
+    eips = convert_eip_name_to_eip_id(name)
+    for e in eips:
+        print(e.public_ip)
+
+
 @ip_group.command("list", add_help_option=False, context_settings=dict(ignore_unknown_options=True))
 @click.argument('args', nargs=-1, type=click.UNPROCESSED)
 @click.pass_context

@@ -693,6 +693,20 @@ def convert_zone_name_to_zone_id(zone_name, error_on_exit=True):
     return possible_zone_ids[0]
 
 
+def convert_eip_name_to_eip_id(eip_name, error_on_exit=True):
+    """ convert an Elastic IP name/Elastic IP association ID/Elastic IP allocation ID to an Elastic IP allocation ID """
+    ec2 = get_ec2_connection()
+    eips = list(ec2.vpc_addresses.filter(Filters=[{'Name': 'allocation-id', 'Values': [eip_name]}]))
+    if 0 < len(eips): return eips
+    eips = list(ec2.vpc_addresses.filter(Filters=[{'Name': 'association-id', 'Values': [eip_name]}]))
+    if 0 < len(eips): return eips
+    eips = list(ec2.vpc_addresses.filter(Filters=[{'Name': 'tag:Name', 'Values': [eip_name]}]))
+    if 0 < len(eips): return eips
+    if error_on_exit:
+        error_exit("No such Elastic IP name/allocation ID/association ID '%s'" % eip_name)
+    return eip_name
+
+
 def decompose_rpath(rpath):
     """ decompose an SCP-style path into components.
         eg) decompose_rpath("user@host.example.com:/path/foo") -> ('user', 'host.example.com', '/path/foo')
