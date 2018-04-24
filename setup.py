@@ -6,14 +6,14 @@ import sys
 depending_libraries = \
     [
         'click>=6.6',
-        'boto3>=1.4.1',
+        'boto3>=1.7.7',
         'tabulate>=0.7.7',
         'colorama',
         'termcolor',
         'future',
         'six',
         'pyperclip',
-        'awscli',
+        'awscli>=1.11.35',
     ]
 if sys.version_info < (3, 0):
     depending_libraries.append('pystun')    # this works only with Python 2.x
