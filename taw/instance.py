@@ -602,6 +602,17 @@ def removetag_instancecmd(params, hostname, tagname, tagvalue):
                                     'Value': tagvalue}])
 
 
+@instance_group.command("name")
+@click.argument('instanceid')
+@click.argument('hostname')
+def name_instancecmd(instanceid, hostname):
+    """ name the specified instance """
+    instance = convert_host_name_to_instance(instanceid)
+    instance.create_tags(DryRun=params.aws_dryrun,
+                         Tags=[{'Key': 'Name',
+                                'Value': hostname}])
+
+
 @instance_group.command("list", add_help_option=False, context_settings=dict(ignore_unknown_options=True))
 @click.argument('args', nargs=-1, type=click.UNPROCESSED)
 @click.pass_context
