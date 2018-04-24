@@ -496,11 +496,15 @@ def list_cmd(params, restype, verbose, argdoc, attr, subargs, allregions):
 
     def list_elastic_ip(dummy_arg):
         """ list all elastic IPs """
+        if argdoc:
+            click.launch('http://boto3.readthedocs.io/en/latest/reference/services/s3.html#S3.Client.list_buckets')
+            return
         ec2 = get_ec2_connection()
         instances = ec2.instances.all()
-        header = ['Allocation ID', 'Association ID', 'Public IP', 'Domain', 'Instance ID', 'Private IP', 'Network Interface ID', 'Instance Name']; rows = []
+        header = ['Name', 'Allocation ID', 'Association ID', 'Public IP', 'Domain', 'Instance ID', 'Private IP', 'Network Interface ID', 'Instance Name']; rows = []
         for i in ec2.vpc_addresses.all():
-            row = [i.allocation_id, i.association_id, i.public_ip, i.domain, i.instance_id, i.private_ip_address, i.network_interface_id]
+            row = [extract_name_from_tags(i.tags)]
+            row += [i.allocation_id, i.association_id, i.public_ip, i.domain, i.instance_id, i.private_ip_address, i.network_interface_id]
             row.append([extract_name_from_tags(inst.tags) for inst in instances if inst.instance_id == i.instance_id])
             rows.append(row)
         output_table(params, header, rows)

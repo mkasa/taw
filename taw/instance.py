@@ -572,6 +572,36 @@ def launch_instancecmd(ctx, params, name, instancetype, amiid, keyname, vpc, sub
     print("Done.")
 
 
+@instance_group.command("settag")
+@click.argument('hostname')
+@click.argument('tagname')
+@click.argument('tagvalue')
+@pass_global_parameters
+def settag_instancecmd(params, hostname, tagname, tagvalue):
+    """ set a value to a tag for a specified instance """
+    instance = convert_host_name_to_instance(hostname)
+    instance.create_tags(DryRun=params.aws_dryrun,
+                         Tags=[{'Key': tagname,
+                                'Value': tagvalue}])
+
+
+@instance_group.command("rmtag")
+@click.argument('hostname')
+@click.argument('tagname')
+@click.argument('tagvalue', required=False)
+@pass_global_parameters
+def removetag_instancecmd(params, hostname, tagname, tagvalue):
+    """ remove a tag (w/a specified value, if anyh) for a specified instance """
+    instance = convert_host_name_to_instance(hostname)
+    if tagvalue is None:
+        instance.delete_tags(DryRun=params.aws_dryrun,
+                             Tags=[{'Key': tagname}])
+    else:
+        instance.delete_tags(DryRun=params.aws_dryrun,
+                             Tags=[{'Key': tagname,
+                                    'Value': tagvalue}])
+
+
 @instance_group.command("list", add_help_option=False, context_settings=dict(ignore_unknown_options=True))
 @click.argument('args', nargs=-1, type=click.UNPROCESSED)
 @click.pass_context
@@ -580,7 +610,7 @@ def list_instancecmd(ctx, args):
     with taw.make_context('taw', ctx.obj.global_opt_str + ['list', 'instance'] + list(args)) as ncon: _ = taw.invoke(ncon)
 
 
-@instance_group.command("showprice", add_help_option=False, context_settings=dict(ignore_unknown_options=True))
+@instance_group.command("showprice")
 @click.argument('args', nargs=-1, type=click.UNPROCESSED)
 @click.pass_context
 def showprice_instancecmd(ctx, args):
