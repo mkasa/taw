@@ -605,12 +605,38 @@ def removetag_instancecmd(params, hostname, tagname, tagvalue):
 @instance_group.command("name")
 @click.argument('instanceid')
 @click.argument('hostname')
-def name_instancecmd(instanceid, hostname):
+@pass_global_parameters
+def name_instancecmd(params, instanceid, hostname):
     """ name the specified instance """
     instance = convert_host_name_to_instance(instanceid)
     instance.create_tags(DryRun=params.aws_dryrun,
                          Tags=[{'Key': 'Name',
                                 'Value': hostname}])
+    if is_debugging: print("public ip = ", instance.public_ip_address)
+    res = ssh_like_call(params, 'which', instanceid, ['which', 'hostnamectl'], True)
+    if is_debugging: print(res)
+    if res.decode('utf-8').strip().endswith('/hostnamectl'):
+        # The system has hostnamectl
+        if is_debugging: print("Using hostnamectl")
+        res = ssh_like_call(params, 'sudo', instanceid, ['sudo', 'hostnamectl', 'set-hostname', hostname], True)
+        if is_debugging: print(res)
+    else:
+        if is_debugging: print("Using an old-fashoned hostname")
+        res = ssh_like_call(params, 'sudo', instanceid, ['sudo', 'hostname', hostname], True)
+        if is_debugging: print(res)
+    res = ssh_like_call(params, 'cat', instanceid, ['cat', '/etc/hosts'], True)
+    etc_hosts_lines = res.decode('utf-8').split("\n")
+    if is_debugging:
+        print("/etc/hosts:")
+        for i in etc_hosts_lines:
+            print("    " + i)
+    if instance.public_ip_address is not None and all([i.find(instance.public_ip_address) == -1 for i in etc_hosts_lines]):
+        line_to_add = "%s %s" % (instance.public_ip_address, hostname)
+        new_etc_hosts = [line_to_add] + etc_hosts_lines
+        res = ssh_like_call(params, 'sudo', instanceid, ['sudo', 'perl', '-i', '-pe', '\'if($.==1){print"' + line_to_add + '\\n"}\'', '/etc/hosts'])
+        print_info("Added an entry '%s' to /etc/hosts" % line_to_add)
+    else:
+        print_info("/etc/hosts already has an entry with the public IP (%s)." % instance.public_ip_address)
 
 
 @instance_group.command("list", add_help_option=False, context_settings=dict(ignore_unknown_options=True))

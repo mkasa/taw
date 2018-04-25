@@ -653,7 +653,7 @@ def get_root_like_user_from_instance(instance):
     return 'ec2-user'  # default
 
 
-def ssh_like_call(params, command_name, hostname_or_instance_id, command_args):
+def ssh_like_call(params, command_name, hostname_or_instance_id, command_args, return_output=False):
     """ call an SSH-like command to login into a specified host with specified arguments
         params is a parameter object of click,
         command_name is a string such as 'ssh' or 'mosh',
@@ -675,11 +675,17 @@ def ssh_like_call(params, command_name, hostname_or_instance_id, command_args):
     args += list(command_args)
     if params.aws_dryrun:
         print(" ".join(args))
-        return
+        return None
     try:
-        subprocess.check_call(args)
+        if is_debugging:
+            print("SSH COMMAND:")
+            print(" ".join(args))
+        if return_output:
+            return subprocess.check_output(args)
+        else:
+            subprocess.check_call(args)
     except:
-        pass
+        return None
 
 
 def convert_zone_name_to_zone_id(zone_name, error_on_exit=True):
