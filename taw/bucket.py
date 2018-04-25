@@ -128,18 +128,21 @@ def rmbucket_bucketcmd(params, bucketname, force):
 @click.argument('dst', nargs=1)
 @click.option('--reduced', is_flag=True, help="Use RRS (reduced redundancy storage) storage class")
 @click.option('--lowaccess', is_flag=True, help="Use IA (Infrequent Access) storage class")
+@click.option('--onezone', is_flag=True, help="Use ONEZONE (One Zone; Infrequent Access) storage class")
 @click.option('--contenttype', help='Specify the content type if needed')
 @click.option('--overwritecontenttype', is_flag=True, help='Overwrite content types when you copy remote to remote')
 @click.option('--permission', help='ACL String (one of private, public-read)')
 @pass_global_parameters
-def cp_bucketcmd(params, src, dst, reduced, lowaccess, contenttype, overwritecontenttype, permission):
+def cp_bucketcmd(params, src, dst, reduced, lowaccess, onezone, contenttype, overwritecontenttype, permission):
     """ copy to/from a specified bucket """
-    if reduced and lowaccess:
-        error_exit("You cannot specify both --reduced and --lowaccess")
+    if reduced and lowaccess: error_exit("You cannot specify both --reduced and --lowaccess. Maybe you want to use --onezone?")
+    if reduced and onezone: error_exit("You cannot specify both --reduced and --onezone. Maybe you can just use --onezone")
+    if lowaccess and onezone: error_exit("You cannot specify both --lowaccess and --onezone. Maybe you can just use --onezone")
     if contenttype: overwritecontenttype = True
     storage_class = 'STANDARD'
     if reduced: storage_class = 'REDUCED_REDUNDANCY'
     if lowaccess: storage_class = 'STANDARD_IA'
+    if onezone: storage_class = 'ONEZONE_IA'
     for src_file in src:
         _, src_bucket , src_path  = decompose_rpath(src_file)  # noqa: E203, E221
         _, dest_bucket, dest_path = decompose_rpath(dst)
