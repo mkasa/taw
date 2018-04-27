@@ -25,12 +25,12 @@ pass_global_parameters = click.make_pass_decorator(GlobalParameters)
 # commands/subcommands
 @click.group(help="Tiny Amazon Wrapper")
 @click.version_option(_VERSION_STRING)
-@click.option('--region', envvar='AWS_DEFAULT_REGION', help='AWS region.')
+@click.option('--region', '-r', envvar='AWS_DEFAULT_REGION', help='AWS region.')
 @click.option('--noheader', is_flag=True, help='Do not output the header line.')
-@click.option('--format', 'format_type', default='simple_with_color', help='Output format.')
-@click.option('--noless', is_flag=True, help='Do not invoke less.')
+@click.option('--format', '-f', 'format_type', default='simple_with_color', help='Output format.')
+@click.option('--noless', '-n', is_flag=True, help='Do not invoke less.')
 @click.option('--debug', is_flag=True, help='Turn on debugging.')
-@click.option('--profile', 'aws_profile', help='Choose profile.')
+@click.option('--profile', '-p', 'aws_profile', help='Choose profile.')
 @click.option('--dryrun', is_flag=True, help='Dry-run. This may not be supported by commands that do not change the state.')
 @click.pass_context
 def taw(ctx, region, noheader, format_type, noless, debug, aws_profile, dryrun):
