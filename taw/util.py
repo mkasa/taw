@@ -665,7 +665,7 @@ def ssh_like_call(params, command_name, hostname_or_instance_id, command_args, r
         error_exit("The instance has no public IP address")
     # root user
     root_user = get_root_like_user_from_instance(instance)
-    args = ['ssh', '-l', root_user]
+    args = [command_name, '-l', root_user]
     key_file_path = os.path.join(os.path.expanduser("~/.ssh"), instance.key_name + ".pem")
     if os.path.exists(key_file_path):
         args += ['-i', key_file_path]
