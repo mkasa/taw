@@ -87,6 +87,17 @@ def get_iam_client():
     return global_iam_client
 
 
+# STS client
+global_sts_client = None
+
+
+def get_sts_client():
+    global global_sts_client
+    if global_sts_client is not None: return global_sts_client
+    global_sts_client = boto3.client('sts')
+    return global_sts_client
+
+
 # Set region
 def set_aws_region(region_name):
     """ set the AWS region.

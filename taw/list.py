@@ -39,6 +39,7 @@ def list_cmd(params, restype, verbose, argdoc, attr, subargs, allregions):
         ip              : list elastic ip
         market          : list market AMIs
         price           : list instance prices
+        identity        : show my identity
     """
 
     def security_group_list_to_strs(cs):
@@ -583,6 +584,14 @@ def list_cmd(params, restype, verbose, argdoc, attr, subargs, allregions):
         """
         click.launch('http://ec2pricing.net/')
 
+    def list_identity(dummy_arg):
+        """ Show the identity of the user.
+            This is useful to find your user ID
+        """
+        client = get_sts_client()
+        r = client.get_caller_identity()
+        output_table(params, ["User ID", "Account", "ARN"], [[r['UserId'], r['Account'], r['Arn']]])
+
     def list_test():
         """ test function. (can be eliminated) """
         output_table(params, ["c1", "c2", "c3", "l" * 100], [
@@ -606,6 +615,7 @@ def list_cmd(params, restype, verbose, argdoc, attr, subargs, allregions):
             'ip'             : list_elastic_ip,
             'market'         : list_market_ami,
             'price'          : list_instance_price,
+            'identity'       : list_identity
         }
     if allregions:
         s = boto3.session.Session()
