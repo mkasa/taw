@@ -21,7 +21,25 @@ from taw.taw import *  # This must be the end of imports
 @click.argument('subargs', nargs=-1)
 @pass_global_parameters
 def list_cmd(params, restype, verbose, argdoc, attr, subargs, allregions):
-    """ list various types of resources such as instances """
+    """ list various types of resources such as instances
+
+        \b
+        instances       : list instances
+        vpcs            : list VPCs
+        subnets         : list subnets
+        images          : list images
+        keypairs        : list key pairs
+        localkeypairs   : list local key pairs
+        snapshots       : list snapshots
+        securitygroups  : list security groups
+        sg              : list security groups (short hand)
+        zone            : list zones
+        buckets         : list S3 buckets
+        az              : list availability zones
+        ip              : list elastic ip
+        market          : list market AMIs
+        price           : list instance prices
+    """
 
     def security_group_list_to_strs(cs):
         def sg_to_str(s):
