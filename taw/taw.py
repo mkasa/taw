@@ -32,12 +32,16 @@ pass_global_parameters = click.make_pass_decorator(GlobalParameters)
 @click.option('--debug', is_flag=True, help='Turn on debugging.')
 @click.option('--profile', '-p', 'aws_profile', help='Choose profile.')
 @click.option('--dryrun', is_flag=True, help='Dry-run. This may not be supported by commands that do not change the state.')
+@click.option('--subprocess', help='Used internally')
 @click.pass_context
-def taw(ctx, region, noheader, format_type, noless, debug, aws_profile, dryrun):
+def taw(ctx, region, noheader, format_type, noless, debug, aws_profile, subprocess, dryrun):
     """ main command group """
     ctx.obj = GlobalParameters()
     opt_lists = []   # this is for command redirection such as ('taw instance list' -> 'taw list instance') (*)
-    colorama.init()  # no effect on *NIX but required on Windows
+    if subprocess == 'color':
+        colorama.init(strip=False)
+    else:
+        colorama.init()
     set_debugging_status(debug)
     if debug: opt_lists.append('--debug')
     if aws_profile:
@@ -58,3 +62,10 @@ def taw(ctx, region, noheader, format_type, noless, debug, aws_profile, dryrun):
     ctx.obj.aws_dryrun = dryrun
     if dryrun: opt_lists += ['--dryrun']
     ctx.obj.global_opt_str = opt_lists  # Again, this is for command redirection.See the above (*)
+    if subprocess:
+        try:
+            nick_name = region_name_to_region_nickname[region]
+        except:
+            nick_name = 'ask the author (need to add to the table)'
+        print("")
+        print_fence("[%s (%s)]" % (region, nick_name))

@@ -619,19 +619,29 @@ def list_cmd(params, restype, verbose, argdoc, attr, subargs, allregions):
         }
     if allregions:
         s = boto3.session.Session()
-        params.output_noless = True
-        is_first_region = True
-        for region in s.get_available_regions('ec2'):
-            set_aws_region(region)
-            try:
-                nick_name = region_name_to_region_nickname[region]
-            except:
-                nick_name = 'ask the author'
-            if is_first_region:
-                is_first_region = False
-            else:
-                print("")
-            print(("=[%s (%s)]" % (region, nick_name)) + "=" * (70 - len(region) - len(nick_name)))
-            call_function_by_unambiguous_prefix(subcommand_table, restype, subargs)
+        if is_gnu_parallel_available():
+            cmdlines = []
+            import __main__
+            for region in s.get_available_regions('ec2'):
+                cmdlines.append([__main__.__file__] + params.global_opt_str + ['--region', region, '--subprocess', 'color', 'list', restype] + list(subargs))
+            # print("===")
+            # for i in cmdlines: print(i)
+            # print("===")
+            parallel_subprocess_by_gnu_parallel(cmdlines)
+        else:
+            params.output_noless = True
+            is_first_region = True
+            for region in s.get_available_regions('ec2'):
+                set_aws_region(region)
+                try:
+                    nick_name = region_name_to_region_nickname[region]
+                except:
+                    nick_name = 'ask the author (need to add to the table)'
+                if is_first_region:
+                    is_first_region = False
+                else:
+                    print("")
+                print_fence("[%s (%s)]" % (region, nick_name))
+                call_function_by_unambiguous_prefix(subcommand_table, restype, subargs)
     else:
         call_function_by_unambiguous_prefix(subcommand_table, restype, subargs)

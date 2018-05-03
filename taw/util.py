@@ -490,7 +490,10 @@ def output_table(params, header, data, coloring=None):
             """ returns True if the second line of output_text does not fit to the terminal width """
             lines = output_text.split("\n")
             # See http://stackoverflow.com/questions/566746/how-to-get-console-window-width-in-python
-            rowstr, columnstr = os.popen('stty size', 'r').read().split()
+            try:
+                rowstr, columnstr = os.popen('stty size 2> /dev/null', 'r').read().split()
+            except ValueError:
+                return False  # stdin is not likely to be tty
             rows, columns = int(rowstr), int(columnstr)
             if is_debugging: print_info("ROW=%d, COL=%d, LINES=%d" % (rows, columns, len(lines) + 2))
             if rows < len(lines) + 2: return True
@@ -978,6 +981,32 @@ def update_recommended_image_cache():
     # NOTE: this is not (yet?) implemented.
     ec2 = get_ec2_connection()
     images = ec2.images.filter(Owners=['self'])
+
+
+def is_gnu_parallel_available():
+    """ Checks if GNU parallel is available. """
+    try:
+        output = subprocess.check_output(['which', 'parallel']).decode('utf-8').rstrip()
+        return os.path.exists(output)
+    except:
+        return False
+
+
+def parallel_subprocess_by_gnu_parallel(cmdlines):
+    """ Execute specified command lines by GNU parallel.
+        User must ensure that GNU parallel is available.
+        (assumes is_gnu_parallel_available() returns True)
+    """
+    for cmdline in cmdlines:
+        args = ['sem', '-j20'] + cmdline
+        # print(args)
+        subprocess.check_call(args)
+    subprocess.check_call(['sem', '--wait'])
+
+
+def print_fence(message):
+    """ Print a message with a fence """
+    print("=" + message + "=" * (70 - len(message)))
 
 
 class PrefixCompleter:
