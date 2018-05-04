@@ -207,6 +207,7 @@ def list_cmd(params, restype, verbose, argdoc, attr, subargs, allregions):
                 (True , "architecture"         , "Arch"            , ident)                       ,
                 (True , "creation_date"        , "Created"         , convert_amazon_time_to_local),
                 (True , "public"               , "Public"          , ident)                       ,
+                (True , "owner_id"             , "Owner"           , ident)                       ,
                 (True , "description"          , "Description"     , ident)                       ,
                 (False, "virtualization_type"  , "Virt. Type"      , ident)                       ,
                 (False, "hypervisor"           , "Hypervisor"      , ident)                       ,
@@ -216,11 +217,23 @@ def list_cmd(params, restype, verbose, argdoc, attr, subargs, allregions):
         for v in attr: list_columns.append((True, v, v, ident))
         header = [x[2] for x in list_columns]; rows = []
         ec2 = get_ec2_connection()
-        # images = ec2.images.filter(Owners=['self'])
+        sts_client = get_sts_client()
+        sts_result = sts_client.get_caller_identity()
+        user_id = sts_result['Account']
         images = ec2.images.filter(Filters=[{'Name': 'is-public', 'Values': ['false']}])
+        header.append('Permissions')
         try:
             for image in images:
                 row = [f(getattr(image, i)) for _, i, _, f in list_columns]
+                print(image.owner_id, user_id)
+                if image.owner_id == user_id:
+                    try:
+                        perms = image.describe_attribute(Attribute='launchPermission')['LaunchPermissions']
+                        row.append(','.join(perms))
+                    except:
+                        row.append('ERROR')
+                else:
+                    row.append('Not Mine')
                 rows.append(row)
         except AttributeError as e:
             error_exit(str(e) + "\nNo such attribute.\nTry 'taw list --argdoc' to see all attributes.")
