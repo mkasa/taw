@@ -23,15 +23,16 @@ def image_group(params):
 def rm_amicmd(params, ami_id, force):
     """ remove the AMI with a specified name """
     ec2 = get_ec2_connection()
-    images = list(ec2.images.filter(Filters=[{'Name': 'image-id', 'Values': [ami_id]}]))
+    image_id = convert_ami_name_to_ami(ami_id)
+    images = list(ec2.images.filter(Filters=[{'Name': 'image-id', 'Values': [image_id]}]))
     if len(images) <= 0: error_exit("No such image ID ('%s')" % ami_id)
     image = images[0]
     if force:
         image.deregister()
-        print("Removed %s (%s): %s" % (image.image_id, image.name, image.descriptino))
+        print("Removed %s (%s): %s" % (image.image_id, image.name, image.description))
     else:
         print("Following resources will be removed:")
-        print("\t%s (%s): %s" % (image.image_id, image.name, image.descriptino))
+        print("\t%s (%s): %s" % (image.image_id, image.name, image.description))
         print("Please add --force to actually remove this AMI")
 
 
