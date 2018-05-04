@@ -131,6 +131,37 @@ def set_ebs_optimization_instancecmd(params, hostname, on, off):
                               Value='False' if off else 'True')
 
 
+@instance_group.command("createimage", short_help='create a machine image (AMI)')
+@click.argument('hostname', metavar='<host name>')
+@click.argument('name')
+@click.argument('description')
+@click.argument('options', nargs=-1)
+@pass_global_parameters
+def createimage_instancecmd(params, hostname, name, description, options):
+    """ create a machine image (AMI) from an instance (running or stopped)
+        """
+    instance = convert_host_name_to_instance(hostname)
+    block_mapping = []
+    noreboot = False
+    for opt in options:
+        r = re.match(r'(ephemeral\d+):(.*)', opt)
+        if r:
+            vname = r.group(1)
+            devname = r.group(2)
+            block_mapping += [{'VirtualName': vname, 'DeviceName': devname}]
+            continue
+        if opt == 'noreboot':
+            noreboot = True
+            continue
+
+    image = instance.create_image(
+            Name=name,
+            Description=description,
+            BlockDeviceMappings=block_mapping,
+            NoReboot=noreboot
+        )
+
+
 def ask_instance_name_interactively(ctx, params, name):
     if name is None:
         print("")
