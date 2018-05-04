@@ -59,7 +59,8 @@ def list_cmd(params, restype, verbose, argdoc, attr, subargs, allregions):
                                                      )
                     devs.append(dev)
                 else:
-                    devs.append(str(k) + ":" + str(v))
+                    key_str = str(k)
+                    devs.append(('  ' if key_str == 'DeviceName' else '') + key_str + ":" + str(v))
             rows.append("\n".join(devs))
         return rows
 
@@ -234,8 +235,8 @@ def list_cmd(params, restype, verbose, argdoc, attr, subargs, allregions):
                 if image.owner_id == user_id:
                     try:
                         perms = image.describe_attribute(Attribute='launchPermission')['LaunchPermissions']
-                        print(perms)
-                        print(list(map(lambda x: x['UserId'], perms)))
+                        # print(perms)
+                        # print(list(map(lambda x: x['UserId'], perms)))
                         row.append(", ".join(['self'] + list(map(lambda x: x['UserId'], perms))))
                     except:
                         row.append('ERROR')
