@@ -58,6 +58,8 @@ def list_cmd(params, restype, verbose, argdoc, attr, subargs, allregions):
                                                            ',DeleteOnTermination' if v['DeleteOnTermination'] == 'True' else ''
                                                      )
                     devs.append(dev)
+                else:
+                    devs.append(str(k) + ":" + str(v))
             rows.append("\n".join(devs))
         return rows
 
@@ -214,7 +216,8 @@ def list_cmd(params, restype, verbose, argdoc, attr, subargs, allregions):
         for v in attr: list_columns.append((True, v, v, ident))
         header = [x[2] for x in list_columns]; rows = []
         ec2 = get_ec2_connection()
-        images = ec2.images.filter(Owners=['self'])
+        # images = ec2.images.filter(Owners=['self'])
+        images = ec2.images.filter(Filters=[{'Name': 'is-public', 'Values': ['false']}])
         try:
             for image in images:
                 row = [f(getattr(image, i)) for _, i, _, f in list_columns]
