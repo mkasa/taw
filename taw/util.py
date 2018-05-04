@@ -551,7 +551,8 @@ def convert_host_name_to_instance(possible_instance_id, error_on_exit=True):
     """ Convert a given host name into the instance ID.
         If the input host name looks like an existing instance ID, then return the instance immediately.
         If the instance with the given host name exists, then return the instance.
-        If there is no such instance, it prints an error and exits.
+        If there is no such instance, it prints an error and exits if error_on_exit.
+        Otherwise returns None
     """
     if possible_instance_id is None: raise NoneInstanceID()
     ec2 = get_ec2_connection()
@@ -577,10 +578,11 @@ class NoneVPCID:
 
 
 def convert_vpc_name_to_vpc(possible_vpc_id, error_on_exit=True):
-    """ Convert a given VPC name into the VPC
+    """ Convert a given VPC name into the VPC ID.
         If the input VPC name looks like an existing VPC ID, then return the VPC immediately.
         If the VPC with the given VPC name exists, then return the VPC.
-        If there is no such VPC, it prints an error and exits.
+        If there is no such VPC, it prints an error and exits if error_on_exit.
+        Otherwise returns None
     """
     if possible_vpc_id is None: raise NoneVPCID()
     ec2 = get_ec2_connection()
@@ -606,10 +608,11 @@ class NoneSubnetID:
 
 
 def convert_subnet_name_to_subnet(possible_subnet_id, error_on_exit=True):
-    """ Convert a given subnet name into the subnet
+    """ Convert a given subnet name into the subnet ID.
         If the input subnet name looks like an existing subnet ID, then return the subnet immediately.
         If the subnet with the given subnet name exists, then return the subnet.
-        If there is not such subnet, it prints an error and exits.
+        If there is not such subnet, it prints an error and exits if error_on_exit.
+        Otherwise returns None
     """
     if possible_subnet_id is None: raise NoneSubnetID()
     ec2 = get_ec2_connection()
@@ -635,10 +638,11 @@ class NoneSecurityGroupID:
 
 
 def convert_sg_name_to_sg(possible_sg_id, error_on_exit=True):
-    """ Convert a given security group name into the security group.
+    """ Convert a given security group name into the security group ID.
         If the input security group name look like an existing security group ID, then return the security group immediately.
         If the security group with the given security group name exists, then return the security group.
-        If there is no such security group, it prints an error and exits.
+        If there is no such security group, it prints an error and exits if error_on_exit.
+        Otherwise returns None
     """
     if possible_sg_id is None: raise NoneSecurityGroupID()
     ec2 = get_ec2_connection()
@@ -657,6 +661,36 @@ def convert_sg_name_to_sg(possible_sg_id, error_on_exit=True):
         if error_on_exit: error_exit("There are multiple security groups with name='%s'.\nCandidates are:\n\t%s" % (possible_sg_id, "\n\t".join(sg_ids)))
         return None
     return sgs[0]
+
+
+class NoneAMIID:
+    """ This exception is raised when a given AMI ID is None. """
+
+
+def convert_ami_name_to_ami(possible_ami_id, error_on_exit=True):
+    """ Convert a given AMI name into image ID.
+        If the input AMI name looks like an existing AMI ID, then return the AMI immediately.
+        If the AMI with the given name exists, then return the AMI.
+        If there is not such AMI, it prints an error and exits if error_on_exit.
+        Otherwise returns None
+    """
+    if possible_ami_id is None: raise NoneAMIID()
+    ec2 = get_ec2_connection()
+    if re.match(r'ami-[0-9a-f]+$', possible_ami_id):
+        images = list(ec2.images.filter(Filters=[{'Name': 'image-id', 'Values': [possible_ami_id]}]))
+        if len(images) <= 0:
+            if error_on_exit: error_exit("Cannot find an AMI ID '%s'" % possible_ami_id)
+            return None
+        return images[0]
+    images = list(ec2.images.filter(Filters=[{'Name': 'name', 'Values': [possible_ami_id]}]))
+    if len(images) <= 0:
+        if error_on_exit: error_exit("Cannot find an AMI '%s'" % possible_ami_id)
+        return None
+    image_ids = [i.id for i in images]
+    if 1 < len(image_ids):
+        if error_on_exit: error_exit("There are multiple AMI IDs with name='%s'.\nCandidates are:\n\t%s" % (possible_ami_id, "\n\t".join(image_ids)))
+        return None
+    return image_ids[0]
 
 
 def get_root_like_user_from_instance(instance):

@@ -15,6 +15,7 @@ import taw.list
 import taw.sg
 import taw.keypair
 import taw.ip
+import taw.image
 from taw.taw import *  # This must be the end of imports
 
 # commands/subcommands

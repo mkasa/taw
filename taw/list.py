@@ -200,6 +200,15 @@ def list_cmd(params, restype, verbose, argdoc, attr, subargs, allregions):
         if argdoc:
             click.launch('https://boto3.readthedocs.io/en/latest/reference/services/ec2.html#image')
             return
+        sts_client = get_sts_client()
+        sts_result = sts_client.get_caller_identity()
+        user_id = sts_result['Account']
+
+        def self_if_mine(account_str):
+            if account_str == user_id:
+                return 'self'
+            return account_str
+
         all_list_columns = [
                 (True , "name"                 , "Name"            , ident)                       ,
                 (True , "image_id"             , "Image ID"        , ident)                       ,
@@ -207,7 +216,7 @@ def list_cmd(params, restype, verbose, argdoc, attr, subargs, allregions):
                 (True , "architecture"         , "Arch"            , ident)                       ,
                 (True , "creation_date"        , "Created"         , convert_amazon_time_to_local),
                 (True , "public"               , "Public"          , ident)                       ,
-                (True , "owner_id"             , "Owner"           , ident)                       ,
+                (True , "owner_id"             , "Owner"           , self_if_mine)                ,
                 (True , "description"          , "Description"     , ident)                       ,
                 (False, "virtualization_type"  , "Virt. Type"      , ident)                       ,
                 (False, "hypervisor"           , "Hypervisor"      , ident)                       ,
@@ -217,23 +226,21 @@ def list_cmd(params, restype, verbose, argdoc, attr, subargs, allregions):
         for v in attr: list_columns.append((True, v, v, ident))
         header = [x[2] for x in list_columns]; rows = []
         ec2 = get_ec2_connection()
-        sts_client = get_sts_client()
-        sts_result = sts_client.get_caller_identity()
-        user_id = sts_result['Account']
         images = ec2.images.filter(Filters=[{'Name': 'is-public', 'Values': ['false']}])
         header.append('Permissions')
         try:
             for image in images:
                 row = [f(getattr(image, i)) for _, i, _, f in list_columns]
-                print(image.owner_id, user_id)
                 if image.owner_id == user_id:
                     try:
                         perms = image.describe_attribute(Attribute='launchPermission')['LaunchPermissions']
-                        row.append(','.join(perms))
+                        print(perms)
+                        print(list(map(lambda x: x['UserId'], perms)))
+                        row.append(", ".join(['self'] + list(map(lambda x: x['UserId'], perms))))
                     except:
                         row.append('ERROR')
                 else:
-                    row.append('Not Mine')
+                    row.append('Not mine')
                 rows.append(row)
         except AttributeError as e:
             error_exit(str(e) + "\nNo such attribute.\nTry 'taw list --argdoc' to see all attributes.")
