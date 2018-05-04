@@ -245,7 +245,13 @@ def list_cmd(params, restype, verbose, argdoc, attr, subargs, allregions):
                 rows.append(row)
         except AttributeError as e:
             error_exit(str(e) + "\nNo such attribute.\nTry 'taw list --argdoc' to see all attributes.")
-        output_table(params, header, rows)
+
+        def coloring(r):
+            if verbose: return None
+            if r[2] == 'pending': return {-1: 'cyan'}
+            return None
+
+        output_table(params, header, rows, [coloring])
 
     def list_key_pairs(dummy_argument):
         """ list key pairs (only info) """
