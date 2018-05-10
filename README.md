@@ -127,6 +127,22 @@ default profile used.
 taw has subcommands like git has subcommands.
 Each subcommand has a document in `doc/` directory.
 
+# Bash Command-line Completion
+Bash uesrs can use bash completion for `taw`. To use the completion feature,
+source `taw_completion.sh` in `.bash_profile` or others.
+
+# Zsh Command-line Completion
+zsh users can use command-line compoletion for `taw` as well. zsh has
+a "bashcompinit" feature with which users can use a completion script
+for bash. To use the completion feature, put the following in
+`.zsh_profile` (or wherever you want).
+
+```zsh
+autoload bashcompinit
+bashcompinit
+source taw_completion.sh
+```
+
 # License
 MIT
 
