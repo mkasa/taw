@@ -9,6 +9,33 @@ from taw.util import *
 from taw.taw import *  # This must be the end of imports
 
 
+# ====================
+#  Exported Functions
+# ====================
+def security_group_list_to_strs(cs):
+    def sg_to_str(s):
+        return dc(s, 'GroupName')
+    return [sg_to_str(s) for s in cs]
+
+
+def device_mappings_to_device_mapping_strs(xs):
+    rows = []
+    for d in xs:
+        devs = []
+        for k, v in d.items():
+            if k == 'Ebs':
+                dev = "%s[%s](%sGB, %s, %s%s)" % (k.upper(), v['SnapshotId'], v['VolumeSize'], v['VolumeType'],
+                                                       'Encrypted' if v['Encrypted'] == 'True' else 'Unencrypted',
+                                                       ',DeleteOnTermination' if v['DeleteOnTermination'] == 'True' else ''
+                                                 )
+                devs.append(dev)
+            else:
+                key_str = str(k)
+                devs.append(('  ' if key_str == 'DeviceName' else '') + key_str + ":" + str(v))
+        rows.append("\n".join(devs))
+    return rows
+
+
 # ==============
 #  LIST COMMAND
 # ==============
@@ -41,28 +68,6 @@ def list_cmd(params, restype, verbose, argdoc, attr, subargs, allregions):
         price           : list instance prices
         identity        : show my identity
     """
-
-    def security_group_list_to_strs(cs):
-        def sg_to_str(s):
-            return dc(s, 'GroupName')
-        return [sg_to_str(s) for s in cs]
-
-    def get_block_device_map(xs):
-        rows = []
-        for d in xs:
-            devs = []
-            for k, v in d.items():
-                if k == 'Ebs':
-                    dev = "%s[%s](%sGB, %s, %s%s)" % (k.upper(), v['SnapshotId'], v['VolumeSize'], v['VolumeType'],
-                                                           'Encrypted' if v['Encrypted'] == 'True' else 'Unencrypted',
-                                                           ',DeleteOnTermination' if v['DeleteOnTermination'] == 'True' else ''
-                                                     )
-                    devs.append(dev)
-                else:
-                    key_str = str(k)
-                    devs.append(('  ' if key_str == 'DeviceName' else '') + key_str + ":" + str(v))
-            rows.append("\n".join(devs))
-        return rows
 
     def list_instance(dummy_argument):
         """ list instances """
@@ -221,7 +226,7 @@ def list_cmd(params, restype, verbose, argdoc, attr, subargs, allregions):
                 (True , "description"          , "Description"     , ident)                       ,
                 (False, "virtualization_type"  , "Virt. Type"      , ident)                       ,
                 (False, "hypervisor"           , "Hypervisor"      , ident)                       ,
-                (False, "block_device_mappings", "Block Device Map", get_block_device_map)        ,
+                (False, "block_device_mappings", "Block Device Map", device_mappings_to_device_mapping_strs)        ,
             ]
         list_columns = [x for x in all_list_columns if verbose or x[0]]
         for v in attr: list_columns.append((True, v, v, ident))
@@ -675,3 +680,35 @@ def list_cmd(params, restype, verbose, argdoc, attr, subargs, allregions):
                 call_function_by_unambiguous_prefix(subcommand_table, restype, subargs)
     else:
         call_function_by_unambiguous_prefix(subcommand_table, restype, subargs)
+
+
+def list_for_all_regions(params, subargs, restype, func):
+    """ List resources in all AWS regions.
+        params is a global parameter object of click
+        restype is a resource type such as 'instance' or 'vpc'
+        """
+    s = boto3.session.Session()
+    if is_gnu_parallel_available():
+        cmdlines = []
+        import __main__
+        for region in s.get_available_regions('ec2'):
+            cmdlines.append([__main__.__file__] + params.global_opt_str + ['--region', region, '--subprocess', 'color', restype, 'list'] + list(subargs))
+        # print("===")
+        # for i in cmdlines: print(i)
+        # print("===")
+        parallel_subprocess_by_gnu_parallel(cmdlines)
+    else:
+        params.output_noless = True
+        is_first_region = True
+        for region in s.get_available_regions('ec2'):
+            set_aws_region(region)
+            try:
+                nick_name = region_name_to_region_nickname[region]
+            except:
+                nick_name = 'ask the author (need to add to the table)'
+            if is_first_region:
+                is_first_region = False
+            else:
+                print("")
+            print_fence("[%s (%s)]" % (region, nick_name))
+            func()

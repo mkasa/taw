@@ -3,6 +3,7 @@
 from __future__ import print_function
 from __future__ import absolute_import
 import os, click
+from taw.list import *
 from taw.util import *
 from taw.taw import *  # This must be the end of imports
 from six.moves import input
@@ -670,12 +671,62 @@ def name_instancecmd(params, instanceid, hostname):
         print_info("/etc/hosts already has an entry with the public IP (%s)." % instance.public_ip_address)
 
 
-@instance_group.command("list", add_help_option=False, context_settings=dict(ignore_unknown_options=True))
-@click.argument('args', nargs=-1, type=click.UNPROCESSED)
-@click.pass_context
-def list_instancecmd(ctx, args):
+@instance_group.command("list")
+@click.option('--verbose', '-v', is_flag=True, help='Verbose output.')
+@click.option('--argdoc', is_flag=True, help='Show available attributes in a web browser')
+@click.option('--attr', '-a', multiple=True, help='Attribute name(s).')
+@click.option('--allregions', is_flag=True, help='List for all regions.')
+@click.argument('subargs', nargs=-1)
+@pass_global_parameters
+def list_instance_instancecmd(params, verbose, argdoc, attr, allregions, subargs):
     """ list instances """
-    with taw.make_context('taw', ctx.obj.global_opt_str + ['list', 'instance'] + list(args)) as ncon: _ = taw.invoke(ncon)
+    if argdoc:
+        click.launch('https://boto3.readthedocs.io/en/latest/reference/services/ec2.html#instance')
+        return
+    if allregions:
+        list_for_all_regions(params, subargs, 'instance', lambda x: list_instancecmd(params, verbose, argdoc, attr, False))
+        return
+    all_list_columns = [
+            (True , "tags"             , "Name"           , extract_name_from_tags)                                       ,
+            (True , "instance_id"      , "ID"             , ident)                                                        ,
+            (True , "instance_type"    , "Instance Type"  , ident)                                                        ,
+            (False, "key_name"         , "Key"            , ident)                                                        ,
+            (True , "public_ip_address", "Public IP"      , ident)                                                        ,
+            (True , "security_groups"  , "Security Groups", lambda l: ", ".join(security_group_list_to_strs(l)))          ,
+            (True , "state"            , "State"          , lambda d: dc(d, 'Name'))                                      ,
+            (False, "state_reason"     , "Reason"         , lambda d: dc(d, 'Message'))                                   ,
+            (False, "tags"             , "Tag"            , lambda a: list(map(lambda x: x['Key'] + "=" + x['Value'], a or []))),
+            (False, "subnet_id"        , "Subnet ID"      , ident)                                                        ,
+            (False, "vpc_id"           , "VPC ID"         , ident)                                                        ,
+        ]
+    list_columns = [x for x in all_list_columns if verbose or x[0]]
+    for v in attr: list_columns.append((True, v, v, ident))
+    header = [x[2] for x in list_columns]; rows = []
+    header += ['Subnet Name', 'VPC Name']
+    ec2 = get_ec2_connection()
+    instances = ec2.instances.all()
+    subnets = list(ec2.subnets.all())
+    vpcs = list(ec2.vpcs.all())
+    try:
+        for inst in instances:
+            row = [f(getattr(inst, i)) for _, i, _, f in list_columns]
+            row.append([extract_name_from_tags(i.tags, inst.subnet_id) for i in subnets if i.id == inst.subnet_id])
+            row.append([extract_name_from_tags(i.tags, inst.vpc_id) for i in vpcs if i.id == inst.vpc_id])
+            rows.append(row)
+    except AttributeError as e:
+        error_exit(str(e) + "\nNo such attribute.\nTry 'taw list --argdoc' to see all attributes.")
+
+    def coloring(r):
+        if verbose: return None
+        if r[5] == 'stopped': return {-1: 'red'}
+        if r[5] == 'stopping': return {-1: 'green'}
+        if r[5] == 'pending': return {-1: 'yellow'}
+        if r[5] == 'stopped': return {-1: 'red'}
+        if r[5] == 'terminated': return {-1: 'grey'}
+        if r[5] == 'shutting-down': return {-1: 'cyan'}
+        return None
+
+    output_table(params, header, rows, [coloring])
 
 
 @instance_group.command("showprice")
