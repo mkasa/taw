@@ -51,7 +51,6 @@ def list_cmd(params, restype, verbose, argdoc, attr, subargs, allregions):
     """ list various types of resources such as instances
 
         \b
-        instances       : list instances
         vpcs            : list VPCs
         subnets         : list subnets
         images          : list images
@@ -68,100 +67,6 @@ def list_cmd(params, restype, verbose, argdoc, attr, subargs, allregions):
         price           : list instance prices
         identity        : show my identity
     """
-
-    def list_instance(dummy_argument):
-        """ list instances """
-        if argdoc:
-            click.launch('https://boto3.readthedocs.io/en/latest/reference/services/ec2.html#instance')
-            return
-        all_list_columns = [
-                (True , "tags"             , "Name"           , extract_name_from_tags)                                  ,
-                (True , "instance_id"      , "ID"             , ident)                                                        ,
-                (True , "instance_type"    , "Instance Type"  , ident)                                                        ,
-                (False, "key_name"         , "Key"            , ident)                                                        ,
-                (True , "public_ip_address", "Public IP"      , ident)                                                        ,
-                (True , "security_groups"  , "Security Groups", lambda l: ", ".join(security_group_list_to_strs(l)))          ,
-                (True , "state"            , "State"          , lambda d: dc(d, 'Name'))                                      ,
-                (False, "state_reason"     , "Reason"         , lambda d: dc(d, 'Message'))                                   ,
-                (False, "tags"             , "Tag"            , lambda a: list(map(lambda x: x['Key'] + "=" + x['Value'], a or []))),
-                (False, "subnet_id"        , "Subnet ID"      , ident)                                                        ,
-                (False, "vpc_id"           , "VPC ID"         , ident)                                                        ,
-            ]
-        list_columns = [x for x in all_list_columns if verbose or x[0]]
-        for v in attr: list_columns.append((True, v, v, ident))
-        header = [x[2] for x in list_columns]; rows = []
-        header += ['Subnet Name', 'VPC Name']
-        ec2 = get_ec2_connection()
-        instances = ec2.instances.all()
-        subnets = list(ec2.subnets.all())
-        vpcs = list(ec2.vpcs.all())
-        try:
-            for inst in instances:
-                row = [f(getattr(inst, i)) for _, i, _, f in list_columns]
-                row.append([extract_name_from_tags(i.tags, inst.subnet_id) for i in subnets if i.id == inst.subnet_id])
-                row.append([extract_name_from_tags(i.tags, inst.vpc_id) for i in vpcs if i.id == inst.vpc_id])
-                rows.append(row)
-        except AttributeError as e:
-            error_exit(str(e) + "\nNo such attribute.\nTry 'taw list --argdoc' to see all attributes.")
-
-        def coloring(r):
-            if verbose: return None
-            if r[5] == 'stopped': return {-1: 'red'}
-            if r[5] == 'stopping': return {-1: 'green'}
-            if r[5] == 'pending': return {-1: 'yellow'}
-            if r[5] == 'stopped': return {-1: 'red'}
-            if r[5] == 'terminated': return {-1: 'grey'}
-            if r[5] == 'shutting-down': return {-1: 'cyan'}
-            return None
-        output_table(params, header, rows, [coloring])
-
-    def list_vpc(dummy_argument):
-        """ list VPCs """
-        if argdoc:
-            click.launch('https://boto3.readthedocs.io/en/latest/reference/services/ec2.html#vpc')
-            return
-        all_list_columns = [
-                (True , "tags"            , "Name"           , extract_name_from_tags),
-                (True , "vpc_id"          , "ID"             , ident)                      ,
-                (True , "cidr_block"      , "CIDR Block"     , ident)                      ,
-                (False, "state"           , "State"          , ident)                      ,
-                (True , "is_default"      , "Default"        , ident)                      ,
-                (False, "dhcp_options_id" , "DHCP Options ID", ident)                      ,
-                (False, "instance_tenancy", "Tenancy"        , ident)                      ,
-            ]
-        list_columns = [x for x in all_list_columns if verbose or x[0]]
-        for v in attr: list_columns.append((True, v, v, ident))
-        header = [x[2] for x in list_columns]
-        if verbose: header.append('Gateway')
-        header += ['Subnet Names', 'Instances', 'Security Groups']
-        rows = []
-        ec2 = get_ec2_connection()
-        instances = ec2.instances.all()
-        vpcs = ec2.vpcs.all()
-        subnets = ec2.subnets.all()
-
-        def subnet_id_to_subnet_name(subnet_id):
-            for s in subnets:
-                if s.subnet_id != subnet_id: continue
-                name = extract_name_from_tags(s.tags)
-                if name != 'NO NAME': return name
-                break
-            return subnet_id
-        sgs = ec2.security_groups.all()
-        if verbose:
-            internet_gateways = ec2.internet_gateways.all()
-        try:
-            for inst in vpcs:
-                row = [f(getattr(inst, i)) for _, i, _, f in list_columns]
-                if verbose:
-                    row.append([i.internet_gateway_id for i in internet_gateways if any(map(lambda x: x['VpcId'] == inst.vpc_id, i.attachments))])
-                row.append([subnet_id_to_subnet_name(i.subnet_id) for i in subnets if i.vpc_id == inst.vpc_id])
-                row.append([extract_name_from_tags(i.tags) for i in instances if i.vpc_id == inst.vpc_id])
-                row.append([i.group_name for i in sgs if i.vpc_id == inst.vpc_id])
-                rows.append(row)
-        except AttributeError as e:
-            error_exit(str(e) + "\nNo such attribute.\nTry 'taw list --argdoc' to see all attributes.")
-        output_table(params, header, rows)
 
     def list_subnet(vpc_id_if_any):
         """ list subnets """

@@ -86,9 +86,59 @@ def create_vpccmd(params, name, cidr, nosubnet, nogateway):
             gateway.attach_to_vpc(VpcId=vpc.vpc_id)
 
 
-@vpc_group.command("list", add_help_option=False, context_settings=dict(ignore_unknown_options=True))
-@click.argument('args', nargs=-1, type=click.UNPROCESSED)
-@click.pass_context
-def list_vpccmd(ctx, args):
-    """ list VPC """
-    with taw.make_context('taw', ctx.obj.global_opt_str + ['list', 'vpc'] + list(args)) as ncon: _ = taw.invoke(ncon)
+@vpc_group.command("list")
+@click.option('--verbose', '-v', is_flag=True, help='Verbose output.')
+@click.option('--argdoc', is_flag=True, help='Show available attributes in a web browser')
+@click.option('--attr', '-a', multiple=True, help='Attribute name(s).')
+@click.option('--allregions', is_flag=True, help='List for all regions.')
+@pass_global_parameters
+def list_vpccmd(params, verbose, argdoc, attr, allregions):
+    """ list VPCs """
+    if argdoc:
+        click.launch('https://boto3.readthedocs.io/en/latest/reference/services/ec2.html#vpc')
+        return
+    if allregions:
+        list_for_all_regions(params, [], 'vpc', lambda x: list_vpccmd(params, verbose, argdoc, attr, False))
+        return
+    all_list_columns = [
+            (True , "tags"            , "Name"           , extract_name_from_tags),
+            (True , "vpc_id"          , "ID"             , ident)                      ,
+            (True , "cidr_block"      , "CIDR Block"     , ident)                      ,
+            (False, "state"           , "State"          , ident)                      ,
+            (True , "is_default"      , "Default"        , ident)                      ,
+            (False, "dhcp_options_id" , "DHCP Options ID", ident)                      ,
+            (False, "instance_tenancy", "Tenancy"        , ident)                      ,
+        ]
+    list_columns = [x for x in all_list_columns if verbose or x[0]]
+    for v in attr: list_columns.append((True, v, v, ident))
+    header = [x[2] for x in list_columns]
+    if verbose: header.append('Gateway')
+    header += ['Subnet Names', 'Instances', 'Security Groups']
+    rows = []
+    ec2 = get_ec2_connection()
+    instances = ec2.instances.all()
+    vpcs = ec2.vpcs.all()
+    subnets = ec2.subnets.all()
+
+    def subnet_id_to_subnet_name(subnet_id):
+        for s in subnets:
+            if s.subnet_id != subnet_id: continue
+            name = extract_name_from_tags(s.tags)
+            if name != 'NO NAME': return name
+            break
+        return subnet_id
+    sgs = ec2.security_groups.all()
+    if verbose:
+        internet_gateways = ec2.internet_gateways.all()
+    try:
+        for inst in vpcs:
+            row = [f(getattr(inst, i)) for _, i, _, f in list_columns]
+            if verbose:
+                row.append([i.internet_gateway_id for i in internet_gateways if any(map(lambda x: x['VpcId'] == inst.vpc_id, i.attachments))])
+            row.append([subnet_id_to_subnet_name(i.subnet_id) for i in subnets if i.vpc_id == inst.vpc_id])
+            row.append([extract_name_from_tags(i.tags) for i in instances if i.vpc_id == inst.vpc_id])
+            row.append([i.group_name for i in sgs if i.vpc_id == inst.vpc_id])
+            rows.append(row)
+    except AttributeError as e:
+        error_exit(str(e) + "\nNo such attribute.\nTry 'taw list --argdoc' to see all attributes.")
+    output_table(params, header, rows)
