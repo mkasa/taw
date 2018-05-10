@@ -532,16 +532,16 @@ def list_cmd(params, restype, verbose, argdoc, attr, subargs, allregions):
         r = client.get_caller_identity()
         output_table(params, ["User ID", "Account", "ARN"], [[r['UserId'], r['Account'], r['Arn']]])
 
-    def list_test():
-        """ test function. (can be eliminated) """
-        output_table(params, ["c1", "c2", "c3", "l" * 100], [
-            [1, 1, 3, "boo\nmoo\nnon\n"],
-            [4, 5, 6, "bar"]], [lambda x: ({-1: 'red'} if int(x[1]) % 2 == 1 else None)])
+    # def list_test():
+        # """ test function. (can be eliminated) """
+        # output_table(params, ["c1", "c2", "c3", "l" * 100], [
+    #         [1, 1, 3, "boo\nmoo\nnon\n"],
+    #         [4, 5, 6, "bar"]], [lambda x: ({-1: 'red'} if int(x[1]) % 2 == 1 else None)])
 
     subcommand_table = {
-            'instances'      : list_instance,
-            'vpcs'           : list_vpc,
-            'test'           : list_test,
+            # 'instances'      : list_instance,
+            # 'vpcs'           : list_vpc,
+            # 'test'           : list_test,
             'subnets'        : list_subnet,
             'images'         : list_image,
             'keypairs'       : list_key_pairs,
