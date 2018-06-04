@@ -301,8 +301,10 @@ def ask_vpc_interactively(ctx, params, vpc_id):
                 with taw.make_context('taw', ctx.obj.global_opt_str + ['vpc', 'list']) as ncon: _ = taw.invoke(ncon)
                 continue
             if input_str.startswith('+'):
-                with taw.make_context('taw', ctx.obj.global_opt_str + ['vpc', 'create', input_str[1:]]) as ncon: _ = taw.invoke(ncon)
-                continue
+                new_vpc_name = input_str[1:]
+                with taw.make_context('taw', ctx.obj.global_opt_str + ['vpc', 'create', new_vpc_name]) as ncon: _ = taw.invoke(ncon)
+                vpc_id = new_vpc_name
+                break
             if input_str.startswith('/'):
                 pass
                 # TODO: it might be useful if we can search here
@@ -342,7 +344,7 @@ def ask_subnet_interactively(ctx, params, vpc_id, subnet):
                 # TODO: it might be useful if we can search here
             if input_str == '': continue
             subnet = input_str
-        subnet = convert_subnet_name_to_subnet(subnet)  # TODO: any chance there are multiple subnets with the same name (but with differnt VPC ID?)
+        subnet = convert_subnet_name_to_subnet(subnet, False, vpc_id)
         if subnet is None:
             print_warning("No such subnet.")
             subnet = None
