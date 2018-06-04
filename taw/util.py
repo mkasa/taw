@@ -609,11 +609,12 @@ class NoneSubnetID:
     """ This exception is raised when a given subnet is None. """
 
 
-def convert_subnet_name_to_subnet(possible_subnet_id, error_on_exit=True):
+def convert_subnet_name_to_subnet(possible_subnet_id, error_on_exit=True, vpc_name_or_id_if_any=None):
     """ Convert a given subnet name into the subnet ID.
         If the input subnet name looks like an existing subnet ID, then return the subnet immediately.
         If the subnet with the given subnet name exists, then return the subnet.
         If there is not such subnet, it prints an error and exits if error_on_exit.
+        When VPC name/ID is provided, it will search only subnets with the specified VPC name/ID.
         Otherwise returns None
     """
     if possible_subnet_id is None: raise NoneSubnetID()
@@ -629,6 +630,12 @@ def convert_subnet_name_to_subnet(possible_subnet_id, error_on_exit=True):
         if error_on_exit: error_exit("Cannot find a subnet '%s'" % possible_subnet_id)
         return None
     subnet_ids = [i.id for i in subnets]
+    if vpc_name_or_id_if_any is not None:
+        vpc_id = convert_vpc_name_to_vpc(vpc_name_or_id_if_any, False)
+        if vpc_id is None and error_on_exit: error_exit("VPC name/ID '%s' was specified but there is no such VPC" % vpc_name_or_id_if_any)
+        print_warning("VPC name/ID '%s' was specified but there is no such VPC" % vpc_name_or_id_if_any)
+        if vpc_id is None: return None
+        subnet_ids = [i.id for i in subnets if i.vpc_id == vpc_id]
     if 1 < len(subnet_ids):
         if error_on_exit: error_exit("There are multiple subnets with name='%s'.\nCandidates are:\n\t%s" % (possible_subnet_id, "\n\t".join(subnet_ids)))
         return None
@@ -639,11 +646,12 @@ class NoneSecurityGroupID:
     """ This exception is raised when a given security group is None. """
 
 
-def convert_sg_name_to_sg(possible_sg_id, error_on_exit=True):
+def convert_sg_name_to_sg(possible_sg_id, error_on_exit=True, vpc_name_or_id_if_any=None):
     """ Convert a given security group name into the security group ID.
         If the input security group name look like an existing security group ID, then return the security group immediately.
         If the security group with the given security group name exists, then return the security group.
         If there is no such security group, it prints an error and exits if error_on_exit.
+        When VPC name/ID is provided, it will search only security groups with the specified VPC name/ID.
         Otherwise returns None
     """
     if possible_sg_id is None: raise NoneSecurityGroupID()
@@ -659,6 +667,12 @@ def convert_sg_name_to_sg(possible_sg_id, error_on_exit=True):
         if error_on_exit: error_exit("Cannot find a security group '%s'" % possible_sg_id)
         return None
     sg_ids = [i.id for i in sgs]
+    if vpc_name_or_id_if_any is not None:
+        vpc_id = convert_vpc_name_to_vpc(vpc_name_or_id_if_any, False)
+        if vpc_id is None and error_on_exit: error_exit("VPC name/ID '%s' was specified but there is no such VPC" % vpc_name_or_id_if_any)
+        print_warning("VPC name/ID '%s' was specified but there is no such VPC" % vpc_name_or_id_if_any)
+        if vpc_id is None: return None
+        sg_ids = [i.id for i in sgs if i.vpc_id == vpc_id]
     if 1 < len(sg_ids):
         if error_on_exit: error_exit("There are multiple security groups with name='%s'.\nCandidates are:\n\t%s" % (possible_sg_id, "\n\t".join(sg_ids)))
         return None

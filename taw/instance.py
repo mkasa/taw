@@ -288,7 +288,7 @@ def ask_ami_id_interactively(ctx, params, ami_id):
 def ask_vpc_interactively(ctx, params, vpc_id):
     if vpc_id is None:
         print("")
-        print("Choose a VPC. Type '?' for listing VPC. CTRL+C to quit.")
+        print("Choose a VPC. Type '?' for listing VPC. CTRL+C to quit. Type '+name' to create a new VPC 'name'.")
     ec2 = get_ec2_connection()
     completion_candidates = [extract_name_from_tags(i.tags) for i in ec2.vpcs.all()]
     completion_candidates += [i.id for i in ec2.vpcs.all()]
@@ -300,9 +300,12 @@ def ask_vpc_interactively(ctx, params, vpc_id):
             if input_str.startswith('?'):
                 with taw.make_context('taw', ctx.obj.global_opt_str + ['vpc', 'list']) as ncon: _ = taw.invoke(ncon)
                 continue
+            if input_str.startswith('+'):
+                with taw.make_context('taw', ctx.obj.global_opt_str + ['vpc', 'create', input_str[1:]]) as ncon: _ = taw.invoke(ncon)
+                continue
             if input_str.startswith('/'):
                 pass
-                # TODO: allow users to create a new VPC
+                # TODO: it might be useful if we can search here
             if input_str == '': continue
             vpc_id = input_str
         vpc = convert_vpc_name_to_vpc(vpc_id)
@@ -318,7 +321,7 @@ def ask_vpc_interactively(ctx, params, vpc_id):
 def ask_subnet_interactively(ctx, params, vpc_id, subnet):
     if subnet is None:
         print("")
-        print("Choose a subnet. Type '?' for listing subnet. CTRL+C to quit.")
+        print("Choose a subnet. Type '?' for listing subnet. CTRL+C to quit.\nType '+name 192.168.14.0/24' to create a new subnet 'name' with the specified CIDR.")
     ec2 = get_ec2_connection()
     completion_candidates = [extract_name_from_tags(i.tags) for i in ec2.subnets.filter(Filters=[{'Name': 'vpc-id', 'Values': [vpc_id]}])]
     completion_candidates += [i.id for i in ec2.subnets.filter(Filters=[{'Name': 'vpc-id', 'Values': [vpc_id]}])]
@@ -330,7 +333,13 @@ def ask_subnet_interactively(ctx, params, vpc_id, subnet):
             if input_str.startswith('?'):
                 with taw.make_context('taw', ctx.obj.global_opt_str + ['subnet', 'list', vpc_id]) as ncon: _ = taw.invoke(ncon)
                 continue
-            # TODO: allow users to create a new subnet
+            if input_str.startswith('+'):
+                args_str = input_str[1:].strip()
+                with taw.make_context('taw', ctx.obj.global_opt_str + ['subnet', 'create'] + re.split(r'\s+', args_str)) as ncon: _ = taw.invoke(ncon)
+                continue
+            if input_str.startswith('/'):
+                pass
+                # TODO: it might be useful if we can search here
             if input_str == '': continue
             subnet = input_str
         subnet = convert_subnet_name_to_subnet(subnet)  # TODO: any chance there are multiple subnets with the same name (but with differnt VPC ID?)
