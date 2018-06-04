@@ -798,6 +798,30 @@ def parse_port_string(port_str):
 def parse_protocol_port_string(prot_port_str):
     port_arr = prot_port_str.split("/")
     if len(port_arr) <= 0: error_exit("protocol must be one of 'icmp', 'tcp/<port nums>', 'udp/<port nums>', where <port nums> is a number or a range (eg. 100-120)")
+    if len(port_arr) <= 1:
+        service_name = port_arr[0]
+        try:
+            with open("/etc/services", "r") as f:
+                for l in f:
+                    l = l.strip()
+                    if l.startswith('#'): continue
+                    res = re.match(r'(\S+)\s+(\S+)', l)
+                    if res is not None:
+                        prot_name = re.group(1)
+                        range_str = re.group(2)
+                        if service_name == prot_name:
+                            port_arr[0] = prot_name
+                            port_arr.append(range_str)
+                            break
+                else:
+                    if service_name == "mosh":
+                        port_arr[0] = 'udp'
+                        port_arr.append("60000-61000")
+                    else:
+                        error_exit("Service name '%s' is not known" % service_name)
+        except IOError:
+            error_exit("you cannot use a service name for specifying a port number/type when /etc/service is not available")
+
     if port_arr[0] == 'icmp':
         protocol = 'icmp'
         target_port_low, target_port_high = -1, -1
