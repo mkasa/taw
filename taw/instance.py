@@ -225,17 +225,28 @@ def ask_ami_id_interactively(ctx, params, ami_id):
     db_path = get_AMI_DB_file_path()
     conn = sqlite3.connect(db_path)
     completion_candidates = [sql_row[0] for sql_row in conn.execute("SELECT * FROM ami_ids;")]
+    # IMAGES
+    ec2 = get_ec2_connection()
+    images = ec2.images.filter(Filters=[{'Name': 'is-public', 'Values': ['false']}])
+    image_id = map(lambda x: x.id, images)
+    image_names = map(lambda x: x.name, images)
+    completion_candidates += image_id
+    completion_candidates += image_names
     if ami_id is None and len(completion_candidates) <= 0:
         error_exit("You have to register AMI ID first. Type 'taw instance register_market_ami'.\nAlternatively you can directly specify an AMI ID if you know one.")
     completer = PrefixCompleter(completion_candidates); readline.set_completer(completer.completer)
     if ami_id is None:
         print("")
         print("Enter an AMI ID you want to launch from. Alternatively you can type a part of the name of AMI.")
-        print("Type '?' for listing registered AMIs. You can search abc for typing '?abc'. CTRL+C to quit.")
+        print("Type '?' for listing registered AMIs, '??' for your AMIs. You can search abc for typing '?abc'. CTRL+C to quit.")
     while True:
         while ami_id is None:
             print("")
             new_ami_id = input("  AMI ID (or keyword): ")
+            if new_ami_id.startswith('??'):
+                search_str = new_ami_id[1:]
+                with taw.make_context('taw', ctx.obj.global_opt_str + ['list', 'image', search_str]) as ncon: _ = taw.invoke(ncon)
+                continue
             if new_ami_id.startswith('?'):
                 search_str = new_ami_id[1:]
                 with taw.make_context('taw', ctx.obj.global_opt_str + ['list', 'market', search_str]) as ncon: _ = taw.invoke(ncon)
@@ -252,6 +263,10 @@ def ask_ami_id_interactively(ctx, params, ami_id):
                 region_to_ami = pickle.loads(sql_row[1])
                 if my_region in region_to_ami:
                     candidate_ami.append((image_name, region_to_ami[my_region]))
+            for image in images:
+                name = image.name
+                if not name.startswith(ami_id): continue
+                candidate_ami.append((name, image.id))
             if len(candidate_ami) <= 0:
                 print_warning("No such AMIs. Try different AMI (or name query).")
                 ami_id = None
