@@ -532,6 +532,15 @@ def list_cmd(params, restype, verbose, argdoc, attr, subargs, allregions):
         r = client.get_caller_identity()
         output_table(params, ["User ID", "Account", "ARN"], [[r['UserId'], r['Account'], r['Arn']]])
 
+    def list_instance(dummy_arg):
+        """ List instances.
+            This is a shorthand for 'taw instance list' but has fewer options. Use 'taw instance list' where possible.
+            """
+        s = boto3.session.Session()
+        import __main__
+        cmdline = [__main__.__file__] + params.global_opt_str + ['instance', 'list'] + list(subargs)
+        subprocess.check_call(cmdline)
+
     # def list_test():
         # """ test function. (can be eliminated) """
         # output_table(params, ["c1", "c2", "c3", "l" * 100], [
@@ -539,7 +548,7 @@ def list_cmd(params, restype, verbose, argdoc, attr, subargs, allregions):
     #         [4, 5, 6, "bar"]], [lambda x: ({-1: 'red'} if int(x[1]) % 2 == 1 else None)])
 
     subcommand_table = {
-            # 'instances'      : list_instance,
+            'instances'      : list_instance,
             # 'vpcs'           : list_vpc,
             # 'test'           : list_test,
             'subnets'        : list_subnet,
