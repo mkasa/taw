@@ -38,10 +38,16 @@ def rm_vpccmd(params, vpc, force):
         print("\tSubnet %s (%s)" % (s.subnet_id, extract_name_from_tags(s.tags)))
     print("\tVPC %s (%s)" % (vpc.id, extract_name_from_tags(vpc.tags)))
     if force:
+        if is_debugging: print("Removing gateways")
         for g in gateways:
+            if is_debugging: print("\tDetaching: %s" % g.id)
             g.detach_from_vpc(VpcId=vpc.vpc_id)
+            if is_debugging: print("\tRemoving: %s" % g.id)
             g.delete()
-        for s in subnets: s.delete()
+        for s in subnets:
+            if is_debugging: print("\tRemoving: %s" % s.id)
+            s.delete()
+        if is_debugging: print("Removing VPC: %s" % vpc.id)
         vpc.delete()
     else:
         print("Please add --force to actually remove those VPCs")
@@ -89,11 +95,11 @@ def create_vpccmd(params, name, cidr, nosubnet, nogateway):
             if is_debugging: print("Creating a gateway")
             gateway = ec2.create_internet_gateway()
             gateway.attach_to_vpc(VpcId=vpc.vpc_id)
-            route_table = vpc.create_route_table()
-            route = route_table.create_route(
-                DestinationCidrBlock='0.0.0.0/0',
-                GatewayId=gateway.id
-            )
+            for route_table in vpc.route_tables.all():
+                route_table.create_route(
+                    DestinationCidrBlock='0.0.0.0/0',
+                    GatewayId=gateway.id
+                )
 
 
 @vpc_group.command("list")
