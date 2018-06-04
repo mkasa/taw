@@ -261,6 +261,8 @@ instance_type_name_to_instance_type = {
     "t2.small"       : {"vcpu" :   1, "mem" :    2, "desc" :  "12 credit minutes/hour, EBS backend"},
     "t2.medium"      : {"vcpu" :   2, "mem" :    4, "desc" :  "24 credit minutes/hour, EBS backend"},
     "t2.large"       : {"vcpu" :   2, "mem" :    8, "desc" :  "36 credit minutes/hour, EBS backend"},
+    "t2.xlarge"      : {"vcpu" :   4, "mem" :   16, "desc" :  "54 credit minutes/hour, EBS backend"},
+    "t2.2xlarge"     : {"vcpu" :   8, "mem" :   32, "desc" :  "81 credit minutes/hour, EBS backend"},
     "m5.large"       : {"vcpu" :   4, "mem" :   16, "desc" :  "At most 2,120Mbps EBS"},
     "m5.2xlarge"     : {"vcpu" :   8, "mem" :   32, "desc" :  "At most 2,120Mbps EBS"},
     "m5.4xlarge"     : {"vcpu" :  16, "mem" :   64, "desc" :  "2,120Mbps EBS"},
