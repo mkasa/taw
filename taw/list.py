@@ -240,6 +240,10 @@ def list_cmd(params, restype, verbose, argdoc, attr, subargs, allregions):
                     iss = [x['CidrIp'] for x in ip_ranges]
                     if len(iss) == 1 and iss[0] == '0.0.0.0/0': return ["any"]
                     return iss
+                if 'IpProtocol' in d and d['IpProtocol'] == "-1":  # noqa: E221
+                    group_ids = list(map(lambda x: x['GroupId'], d['UserIdGroupPairs']))
+                    if len(group_ids) <= 0: return ['any']
+                    return ['any(' + ", ".join(group_ids) + ')']
                 if 'FromPort' not in d:
                     return ["N/A"]
                 if d['FromPort'] == -1:
