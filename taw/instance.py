@@ -173,7 +173,7 @@ def ask_instance_name_interactively(ctx, params, name):
             print("")
             new_name = input("  Name: ")
             if new_name.startswith('?'):
-                with taw.make_context('taw', ctx.obj.global_opt_str + ['list', 'instance']) as ncon: _ = taw.invoke(ncon)
+                with taw.make_context('taw', ctx.obj.global_opt_str + ['instance', 'list']) as ncon: _ = taw.invoke(ncon)
                 continue
             if name == '': continue
             name = new_name
@@ -245,7 +245,7 @@ def ask_ami_id_interactively(ctx, params, ami_id):
             new_ami_id = input("  AMI ID (or keyword): ")
             if new_ami_id.startswith('??'):
                 search_str = new_ami_id[1:]
-                with taw.make_context('taw', ctx.obj.global_opt_str + ['list', 'image', search_str]) as ncon: _ = taw.invoke(ncon)
+                with taw.make_context('taw', ctx.obj.global_opt_str + ['image', 'list', search_str]) as ncon: _ = taw.invoke(ncon)
                 continue
             if new_ami_id.startswith('?'):
                 search_str = new_ami_id[1:]
@@ -298,7 +298,7 @@ def ask_vpc_interactively(ctx, params, vpc_id):
             print("")
             input_str = input("  VPC ID or name: ")
             if input_str.startswith('?'):
-                with taw.make_context('taw', ctx.obj.global_opt_str + ['list', 'vpc']) as ncon: _ = taw.invoke(ncon)
+                with taw.make_context('taw', ctx.obj.global_opt_str + ['vpc', 'list']) as ncon: _ = taw.invoke(ncon)
                 continue
             if input_str.startswith('/'):
                 pass
@@ -328,7 +328,7 @@ def ask_subnet_interactively(ctx, params, vpc_id, subnet):
             print("")
             input_str = input("  Subnet ID or name: ")
             if input_str.startswith('?'):
-                with taw.make_context('taw', ctx.obj.global_opt_str + ['list', 'subnet', vpc_id]) as ncon: _ = taw.invoke(ncon)
+                with taw.make_context('taw', ctx.obj.global_opt_str + ['subnet', 'list', vpc_id]) as ncon: _ = taw.invoke(ncon)
                 continue
             # TODO: allow users to create a new subnet
             if input_str == '': continue
@@ -399,7 +399,7 @@ def ask_security_group_interactively(ctx, params, vpc_id, subnet_id, securitygro
             print("")
             input_str = input("  Name or ID: ")
             if input_str.startswith('?'):
-                with taw.make_context('taw', ctx.obj.global_opt_str + ['list', 'sg', vpc_id]) as ncon: _ = taw.invoke(ncon)
+                with taw.make_context('taw', ctx.obj.global_opt_str + ['sg', 'list', vpc_id]) as ncon: _ = taw.invoke(ncon)
                 continue
             if input_str == '': continue
             if input_str == '-':

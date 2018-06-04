@@ -76,15 +76,24 @@ def create_vpccmd(params, name, cidr, nosubnet, nogateway):
         error_exit("CIDR block %s is not a private address block" % cidr)
     vpc = ec2.create_vpc(CidrBlock=cidr)
     if is_debugging: print(vpc)
+    vpc.wait_until_available()
+    if is_debugging: print("VPC became available")
     vpc.create_tags(Tags=[{'Key': 'Name', 'Value': name}])
     if not nosubnet:
+        if is_debugging: print("Creating a new subnet")
         b1, b2, b3, b4, nbits = cidr_addr
         if nbits < 24: nbits = 24
         subnet = vpc.create_subnet(CidrBlock="%d.%d.%d.%d/%d" % (b1, b2, b3, b4, nbits))
         subnet.create_tags(Tags=[{'Key': 'Name', 'Value': name + "-default"}])
         if not nogateway:
+            if is_debugging: print("Creating a gateway")
             gateway = ec2.create_internet_gateway()
             gateway.attach_to_vpc(VpcId=vpc.vpc_id)
+            route_table = vpc.create_route_table()
+            route = route_table.create_route(
+                DestinationCidrBlock='0.0.0.0/0',
+                GatewayId=gateway.id
+            )
 
 
 @vpc_group.command("list")
