@@ -815,11 +815,12 @@ def parse_protocol_port_string(prot_port_str):
     if len(port_arr) <= 1:
         arg_service_name = port_arr[0]
         try:
+            hits = []
             with open("/etc/services", "r") as f:
                 for l in f:
                     l = l.strip()
                     if l.startswith('#'): continue
-                    res = re.match(r'(\S+)\s+(\S+)/(\S+)', l)
+                    res = re.match(r'(\S+)\s+(\S+)[/:](\S+)', l)
                     if res is not None:
                         service_name = res.group(1)
                         range_str    = res.group(2)
@@ -827,8 +828,7 @@ def parse_protocol_port_string(prot_port_str):
                         if is_debugging: print("PROT(%s)=%s/%s" % (service_name, prot_name, range_str))
                         if arg_service_name == service_name:
                             if is_debugging: print("MATCHED")
-                            port_arr[0] = prot_name
-                            port_arr.append(range_str)
+                            hits.append((prot_name, range_str))
                             if is_debugging: print(port_arr)
                             break
                 else:
@@ -837,6 +837,15 @@ def parse_protocol_port_string(prot_port_str):
                         port_arr.append("60000-61000")
                     else:
                         error_exit("Service name '%s' is not known" % arg_service_name)
+            if 1 < len(hits):
+                n_tcp = len(filter(lambda x: x[0] == 'tcp', hits))
+                n_udp = len(filter(lambda x: x[0] == 'udp', hits))
+                if n_tcp == 1 and n_udp > 0:
+                    hits = filter(lambda x: x[0] == 'tcp', hits)
+            if 1 < len(hits):
+                error_exit("Service name '%s' has multiple possibilities. Use numbers for specifying ports." % arg_service_name)
+            port_arr[0] = hits[0][0]
+            port_arr.append(hits[0][1])
         except IOError:
             error_exit("you cannot use a service name for specifying a port number/type when /etc/service is not available")
 

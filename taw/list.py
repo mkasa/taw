@@ -270,7 +270,7 @@ def list_cmd(params, restype, verbose, argdoc, attr, subargs, allregions):
         all_list_columns = [
                 (True , "group_name"           , "Name"  , ident)            ,
                 (True , "group_id"             , "ID"    , ident)            ,
-                (True , "ip_permissions"       , "Perm"  , str_sg_permission),
+                (True , "ip_permissions"       , "Ingress"  , str_sg_permission),
                 (True , "ip_permissions_egress", "Egress", str_sg_permission),
                 (False, "vpc_id"               , "VPC"   , ident)            ,
             ]
