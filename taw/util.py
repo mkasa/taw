@@ -820,7 +820,7 @@ def parse_protocol_port_string(prot_port_str):
                 for l in f:
                     l = l.strip()
                     if l.startswith('#'): continue
-                    res = re.match(r'(\S+)\s+(\S+)[/:](\S+)', l)
+                    res = re.match(r'(\S+)\s+(\S+)/(\S+)', l)
                     if res is not None:
                         service_name = res.group(1)
                         range_str    = res.group(2)
