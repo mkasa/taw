@@ -265,7 +265,7 @@ def list_cmd(params, restype, verbose, argdoc, attr, subargs, allregions):
                             else:
                                 port_range_str = "%d-%d" % (froms, tos)
                     ranges = d['IpRanges']
-                    return ["%s:%s(%s)" % (prot, port_range_str, i) for i in fs(ranges)]
+                    return ["%s/%s(%s)" % (prot, port_range_str, i) for i in fs(ranges)]
             return [i for x in arr for i in conv(x)]
         all_list_columns = [
                 (True , "group_name"           , "Name"  , ident)            ,
