@@ -137,7 +137,14 @@ def list_cmd(params, restype, verbose, argdoc, attr, subargs, allregions):
         for v in attr: list_columns.append((True, v, v, ident))
         header = [x[2] for x in list_columns]; rows = []
         ec2 = get_ec2_connection()
-        images = ec2.images.filter(Filters=[{'Name': 'is-public', 'Values': ['false']}])
+        if 0 < len(dummy_argument):
+            images = ec2.images.filter(Owners=['self', '099720109477'],
+                                       Filters=[{'Name': 'is-public', 'Values': ['true']},
+                                                {'Name': 'virtualization-type', 'Values': ['hvm']}])
+        else:
+            images = ec2.images.filter(Owners=['self'],
+                                       Filters=[{'Name': 'is-public', 'Values': ['false']},
+                                                {'Name': 'virtualization-type', 'Values': ['hvm']}])
         header.append('Permissions')
         try:
             for image in images:
@@ -152,7 +159,26 @@ def list_cmd(params, restype, verbose, argdoc, attr, subargs, allregions):
                         row.append('ERROR')
                 else:
                     row.append('Not mine')
-                rows.append(row)
+                has_to_exclude = False
+                desc = row[7]
+                if desc is None and len(dummy_argument) > 0:
+                    has_to_exclude = True
+                if len(dummy_argument) > 0 and desc is not None:
+                    all_found = True
+                    any_pos_keyword = False
+                    for i in dummy_argument:
+                        if i.startswith('/'):
+                            if desc.find(i[1:]) >= 0:
+                                has_to_exclude = True
+                                break
+                        else:
+                            any_pos_keyword = True
+                            if desc.find(i) < 0:
+                                all_found = False
+                    if any_pos_keyword and not all_found:
+                        has_to_exclude = True
+                if not has_to_exclude:
+                    rows.append(row)
         except AttributeError as e:
             error_exit(str(e) + "\nNo such attribute.\nTry 'taw list --argdoc' to see all attributes.")
 

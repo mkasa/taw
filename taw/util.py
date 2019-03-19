@@ -398,6 +398,7 @@ trusted_ami_owners = [
     'amazon',         # Amazon, of course
     '309956199498',   # RedHat
     '099720109477',   # Ubuntu
+    '679593333241',   # CentOS
 ]
 
 
