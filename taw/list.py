@@ -18,23 +18,6 @@ def security_group_list_to_strs(cs):
     return [sg_to_str(s) for s in cs]
 
 
-def device_mappings_to_device_mapping_strs(xs):
-    rows = []
-    for d in xs:
-        devs = []
-        for k, v in d.items():
-            if k == 'Ebs':
-                dev = "%s[%s](%sGB, %s, %s%s)" % (k.upper(), v['SnapshotId'], v['VolumeSize'], v['VolumeType'],
-                                                       'Encrypted' if v['Encrypted'] == 'True' else 'Unencrypted',
-                                                       ',DeleteOnTermination' if v['DeleteOnTermination'] == 'True' else ''
-                                                 )
-                devs.append(dev)
-            else:
-                key_str = str(k)
-                devs.append(('  ' if key_str == 'DeviceName' else '') + key_str + ":" + str(v))
-        rows.append("\n".join(devs))
-    return rows
-
 
 # ==============
 #  LIST COMMAND
@@ -105,89 +88,6 @@ def list_cmd(params, restype, verbose, argdoc, attr, subargs, allregions):
         except AttributeError as e:
             error_exit(str(e) + "\nNo such attribute.\nTry 'taw list --argdoc' to see all attributes.")
         output_table(params, header, rows)
-
-    def list_image(dummy_argument):
-        """ list images (of mine) """
-        if argdoc:
-            click.launch('https://boto3.readthedocs.io/en/latest/reference/services/ec2.html#image')
-            return
-        sts_client = get_sts_client()
-        sts_result = sts_client.get_caller_identity()
-        user_id = sts_result['Account']
-
-        def self_if_mine(account_str):
-            if account_str == user_id:
-                return 'self'
-            return account_str
-
-        all_list_columns = [
-                (True , "name"                 , "Name"            , ident)                       ,
-                (True , "image_id"             , "Image ID"        , ident)                       ,
-                (True , "state"                , "State"           , ident)                       ,
-                (True , "architecture"         , "Arch"            , ident)                       ,
-                (True , "creation_date"        , "Created"         , convert_amazon_time_to_local),
-                (True , "public"               , "Public"          , ident)                       ,
-                (True , "owner_id"             , "Owner"           , self_if_mine)                ,
-                (True , "description"          , "Description"     , ident)                       ,
-                (False, "virtualization_type"  , "Virt. Type"      , ident)                       ,
-                (False, "hypervisor"           , "Hypervisor"      , ident)                       ,
-                (False, "block_device_mappings", "Block Device Map", device_mappings_to_device_mapping_strs)        ,
-            ]
-        list_columns = [x for x in all_list_columns if verbose or x[0]]
-        for v in attr: list_columns.append((True, v, v, ident))
-        header = [x[2] for x in list_columns]; rows = []
-        ec2 = get_ec2_connection()
-        if 0 < len(dummy_argument):
-            images = ec2.images.filter(Owners=['self', '099720109477'],
-                                       Filters=[{'Name': 'is-public', 'Values': ['true']},
-                                                {'Name': 'virtualization-type', 'Values': ['hvm']}])
-        else:
-            images = ec2.images.filter(Owners=['self'],
-                                       Filters=[{'Name': 'is-public', 'Values': ['false']},
-                                                {'Name': 'virtualization-type', 'Values': ['hvm']}])
-        header.append('Permissions')
-        try:
-            for image in images:
-                row = [f(getattr(image, i)) for _, i, _, f in list_columns]
-                if image.owner_id == user_id:
-                    try:
-                        perms = image.describe_attribute(Attribute='launchPermission')['LaunchPermissions']
-                        # print(perms)
-                        # print(list(map(lambda x: x['UserId'], perms)))
-                        row.append(", ".join(['self'] + list(map(lambda x: x['UserId'], perms))))
-                    except:
-                        row.append('ERROR')
-                else:
-                    row.append('Not mine')
-                has_to_exclude = False
-                desc = row[7]
-                if desc is None and len(dummy_argument) > 0:
-                    has_to_exclude = True
-                if len(dummy_argument) > 0 and desc is not None:
-                    all_found = True
-                    any_pos_keyword = False
-                    for i in dummy_argument:
-                        if i.startswith('/'):
-                            if desc.find(i[1:]) >= 0:
-                                has_to_exclude = True
-                                break
-                        else:
-                            any_pos_keyword = True
-                            if desc.find(i) < 0:
-                                all_found = False
-                    if any_pos_keyword and not all_found:
-                        has_to_exclude = True
-                if not has_to_exclude:
-                    rows.append(row)
-        except AttributeError as e:
-            error_exit(str(e) + "\nNo such attribute.\nTry 'taw list --argdoc' to see all attributes.")
-
-        def coloring(r):
-            if verbose: return None
-            if r[2] == 'pending': return {-1: 'cyan'}
-            return None
-
-        output_table(params, header, rows, [coloring])
 
     def list_key_pairs(dummy_argument):
         """ list key pairs (only info) """
@@ -569,6 +469,14 @@ def list_cmd(params, restype, verbose, argdoc, attr, subargs, allregions):
         s = boto3.session.Session()
         import __main__
         cmdline = [__main__.__file__] + params.global_opt_str + ['instance', 'list'] + list(subargs)
+        subprocess.check_call(cmdline)
+
+    def list_image(dummy_argument):
+        """ List images.
+            """
+        s = boto3.session.Session()
+        import __main__
+        cmdline = [__main__.__file__] + params.global_opt_str + ['image', 'list'] + list(subargs)
         subprocess.check_call(cmdline)
 
     # def list_test():

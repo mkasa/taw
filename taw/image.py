@@ -7,6 +7,26 @@ from taw.util import *
 from taw.taw import *  # This must be the end of imports
 
 
+# ========
+#  HELPER
+# ========
+def device_mappings_to_device_mapping_strs(xs):
+    rows = []
+    for d in xs:
+        devs = []
+        for k, v in d.items():
+            if k == 'Ebs':
+                dev = "%s[%s](%sGB, %s, %s%s)" % (k.upper(), v['SnapshotId'], v['VolumeSize'], v['VolumeType'],
+                                                       'Encrypted' if v['Encrypted'] == 'True' else 'Unencrypted',
+                                                       ',DeleteOnTermination' if v['DeleteOnTermination'] == 'True' else ''
+                                                 )
+                devs.append(dev)
+            else:
+                key_str = str(k)
+                devs.append(('  ' if key_str == 'DeviceName' else '') + key_str + ":" + str(v))
+        rows.append("\n".join(devs))
+    return rows
+
 # ==============
 #  AMI COMMAND
 # ==============
@@ -68,8 +88,93 @@ def name_amicmd(param, ami_id, name):
 
 
 @image_group.command("list", add_help_option=False, context_settings=dict(ignore_unknown_options=True))
-@click.argument('args', nargs=-1, type=click.UNPROCESSED)
-@click.pass_context
-def list_amicmd(ctx, args):
-    """ list AMIs """
-    with taw.make_context('taw', ctx.obj.global_opt_str + ['list', 'image'] + list(args)) as ncon: _ = taw.invoke(ncon)
+@click.argument('keywords', nargs=-1)
+@click.option('--argdoc', is_flag=True)
+@click.option('--verbose', is_flag=True)
+@click.option('--attr', '-a', multiple=True, help='Attribute name(s).')
+@click.option('--allregions', is_flag=True, help='List for all regions.')
+@pass_global_parameters
+def list_image(params, keywords, argdoc, verbose, attr, allregions):
+    """ list images (of mine or trusted parties) """
+    dummy_argument = keywords # renaming
+    if argdoc:
+        click.launch('https://boto3.readthedocs.io/en/latest/reference/services/ec2.html#image')
+        return
+    sts_client = get_sts_client()
+    sts_result = sts_client.get_caller_identity()
+    user_id = sts_result['Account']
+
+    def self_if_mine(account_str):
+        if account_str == user_id:
+            return 'self'
+        return account_str
+
+    all_list_columns = [
+            (True , "name"                 , "Name"            , ident)                       ,
+            (True , "image_id"             , "Image ID"        , ident)                       ,
+            (True , "state"                , "State"           , ident)                       ,
+            (True , "architecture"         , "Arch"            , ident)                       ,
+            (True , "creation_date"        , "Created"         , convert_amazon_time_to_local),
+            (True , "public"               , "Public"          , ident)                       ,
+            (True , "owner_id"             , "Owner"           , self_if_mine)                ,
+            (True , "description"          , "Description"     , ident)                       ,
+            (False, "virtualization_type"  , "Virt. Type"      , ident)                       ,
+            (False, "hypervisor"           , "Hypervisor"      , ident)                       ,
+            (False, "block_device_mappings", "Block Device Map", device_mappings_to_device_mapping_strs)        ,
+        ]
+    list_columns = [x for x in all_list_columns if verbose or x[0]]
+    for v in attr: list_columns.append((True, v, v, ident))
+    header = [x[2] for x in list_columns]; rows = []
+    ec2 = get_ec2_connection()
+    if 0 < len(dummy_argument):
+        images = ec2.images.filter(Owners=['self', '099720109477'],
+                                   Filters=[{'Name': 'is-public', 'Values': ['true']},
+                                            {'Name': 'virtualization-type', 'Values': ['hvm']}])
+    else:
+        images = ec2.images.filter(Owners=['self'],
+                                   Filters=[{'Name': 'is-public', 'Values': ['false']},
+                                            {'Name': 'virtualization-type', 'Values': ['hvm']}])
+    header.append('Permissions')
+    try:
+        for image in images:
+            row = [f(getattr(image, i)) for _, i, _, f in list_columns]
+            if image.owner_id == user_id:
+                try:
+                    perms = image.describe_attribute(Attribute='launchPermission')['LaunchPermissions']
+                    # print(perms)
+                    # print(list(map(lambda x: x['UserId'], perms)))
+                    row.append(", ".join(['self'] + list(map(lambda x: x['UserId'], perms))))
+                except:
+                    row.append('ERROR')
+            else:
+                row.append('Not mine')
+            has_to_exclude = False
+            desc = row[7]
+            if desc is None and len(dummy_argument) > 0:
+                has_to_exclude = True
+            if len(dummy_argument) > 0 and desc is not None:
+                all_found = True
+                any_pos_keyword = False
+                for i in dummy_argument:
+                    if i.startswith('/'):
+                        if desc.find(i[1:]) >= 0:
+                            has_to_exclude = True
+                            break
+                    else:
+                        any_pos_keyword = True
+                        if desc.find(i) < 0:
+                            all_found = False
+                if any_pos_keyword and not all_found:
+                    has_to_exclude = True
+            if not has_to_exclude:
+                rows.append(row)
+    except AttributeError as e:
+        error_exit(str(e) + "\nNo such attribute.\nTry 'taw list --argdoc' to see all attributes.")
+
+    def coloring(r):
+        if verbose: return None
+        if r[2] == 'pending': return {-1: 'cyan'}
+        return None
+
+    output_table(params, header, rows, [coloring])
+
