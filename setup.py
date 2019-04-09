@@ -8,7 +8,7 @@ depending_libraries = \
         'click>=6.6',
         'boto3>=1.7.7',
         'tabulate>=0.7.7',
-        'colorama',
+        'colorama==0.2.5',
         'termcolor',
         'future',
         'six',
