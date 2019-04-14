@@ -786,13 +786,15 @@ def ssh_like_call(params, command_name, hostname_or_instance_id, command_args, r
         error_exit("The instance has no public IP address")
     # root user
     root_user = get_root_like_user_from_instance(instance)
-    args = [command_name, '-l', root_user]
+    args = [command_name if command_name != 'mosh' else 'ssh']
     key_file_path = os.path.join(os.path.expanduser("~/.ssh"), instance.key_name + ".pem")
     if os.path.exists(key_file_path):
         args += ['-i', key_file_path]
     else:
         print_info("Key file '%s' does not exist.\nThe default keys might be used" % key_file_path)
-    args += [instance.public_ip_address]
+    if command_name == 'mosh':
+        args = ['mosh', "--ssh=" + " ".join(args)]
+    args += [root_user + "@" + instance.public_ip_address]
     args += list(command_args)
     if params.aws_dryrun:
         print(" ".join(args))
