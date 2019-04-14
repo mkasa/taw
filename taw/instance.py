@@ -7,6 +7,8 @@ from taw.list import *
 from taw.util import *
 from taw.taw import *  # This must be the end of imports
 from six.moves import input
+import shlex
+import six
 
 
 # ==================
@@ -96,6 +98,30 @@ def change_instance_type_instancecmd(params, hostname, new_instance_name):
     instance.modify_attribute(DryRun=params.aws_dryrun,
                               Attribute='instanceType',
                               Value=new_instance_name)
+
+
+@instance_group.command("set_host_name", short_help='set/fix host name')
+@click.argument('hostname', metavar='<host name>')
+@pass_global_parameters
+def set_host_name(params, hostname):
+    """ set or fix the host name of a specified host """
+    instance = convert_host_name_to_instance(hostname)
+    import __main__
+    cmdline = [__main__.__file__] + params.global_opt_str
+    cmdline += ['ssh', hostname, '--', 'sudo', 'sh', '-c', shlex.quote("echo %s > /etc/hostname" % hostname)]
+    subprocess.check_call(cmdline)
+    cmdline = [__main__.__file__] + params.global_opt_str
+    cmdline += ['ssh', hostname, '--', 'sudo', 'hostname', hostname]
+    subprocess.check_call(cmdline)
+    cmdline = [__main__.__file__] + params.global_opt_str
+    cmdline += ['ssh', hostname, '--', 'cat', '/etc/hosts']
+    etc_hosts = subprocess.check_output(cmdline)
+    if len(list(filter(lambda x: re.search(hostname, x), six.text_type(etc_hosts).split("\\n")))) <= 0: # TODO: this needs to be more sophisticated ...
+        print_info("/etc/hosts does not contain the host '%s'" % hostname)
+        print_info("Try to add IP for the host...")
+        cmdline = [__main__.__file__] + params.global_opt_str
+        cmdline += ['ssh', hostname, '--', 'sudo', 'sh', '-c', shlex.quote("echo 127.0.0.1 %s >> /etc/hosts" % hostname)]
+        subprocess.check_call(cmdline)
 
 
 @instance_group.command("set_api_termination", short_help='allow/disallow API termination')
