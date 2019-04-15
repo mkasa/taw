@@ -1163,6 +1163,13 @@ def look_for_completion_profile():
     return possible_keywords
 
 
+def look_for_completion_region():
+    possible_keywords = []
+    for k, v in region_name_to_region_nickname.items():
+        possible_keywords += [k, v]
+    return possible_keywords
+
+
 def wait_for_clipboard_to_update(minimum_size=0):
     """ Wait for something of more than or equal to minimum_size bytes to be copied to the clipboard.
         The return value is the content of the clipboard (in plain text).
