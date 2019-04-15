@@ -45,8 +45,11 @@ def taw(ctx, region, noheader, format_type, noless, debug, aws_profile, subproce
     set_debugging_status(debug)
     if debug: opt_lists.append('--debug')
     if aws_profile:
-        set_aws_profile(aws_profile)
-        opt_lists += ['--profile', aws_profile]
+        if aws_profile == "default":
+            del os.environ["AWS_PROFILE"]
+        else:
+            set_aws_profile(aws_profile)
+            opt_lists += ['--profile', aws_profile]
     if region in region_nickname_to_region_name: region = region_nickname_to_region_name[region]
     if region:
         set_aws_region(region)
