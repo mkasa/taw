@@ -1116,7 +1116,13 @@ def get_profile_cache_directory():
             os.mkdir(taw_cache_dir)
         except:
             return None
-    profile_name_str = "default" if param_profile == None else param_profile
+    if param_profile is None:
+        if "AWS_PROFILE" in os.environ:
+            profile_name_str = os.environ["AWS_PROFILE"]
+        else:
+            profile_name_str = "default"
+    else:
+        profile_name_str = param_profile
     profile_cache_dir = os.path.join(taw_cache_dir, profile_name_str)
     if not os.path.exists(profile_cache_dir):
         try:
@@ -1139,12 +1145,15 @@ def look_for_completion_keywords(cache_name, cache_type=None):
     profile_cache_dir = get_profile_cache_directory()
     if profile_cache_dir is None: return []
     possible_keywords = []
-    with open(os.path.join(profile_cache_dir, cache_name), "r") as f:
-        for record in f:
-            row = record.split("\t")
-            if 2 <= len(row) and (cache_type is None or re.search(cache_type, row[0])):
-                possible_keywords.append(row[1])
-    return possible_keywords
+    try:
+        with open(os.path.join(profile_cache_dir, cache_name), "r") as f:
+            for record in f:
+                row = record.split("\t")
+                if 2 <= len(row) and (cache_type is None or re.search(cache_type, row[0])):
+                    possible_keywords.append(row[1])
+        return possible_keywords
+    except:
+        return []
 
 
 def look_for_completion_profile():
@@ -1237,3 +1246,9 @@ def get_default_content_type(file_name):
     mime_type, compress_type = mimetypes.guess_type(file_name)
     if mime_type is not None: return mime_type
     return "application/octet-stream"
+
+
+def click_never_validate(ctx, param, value):
+    """ this is a 'never validate'-policy validator """
+    return value
+
