@@ -52,8 +52,11 @@ def taw(ctx, region, noheader, format_type, noless, debug, aws_profile, subproce
             opt_lists += ['--profile', aws_profile]
     if region in region_nickname_to_region_name: region = region_nickname_to_region_name[region]
     if region:
-        set_aws_region(region)
         opt_lists += ['--region', region]
+        set_aws_region(region)
+    else:
+        region = read_default_region_from_config(aws_profile)
+        set_aws_region(region)
     ensure_credential(ctx.obj)
     ctx.obj.output_header = not noheader
     if noheader:

@@ -11,6 +11,21 @@ import shlex
 import six
 
 
+# =======================
+#  bash completion stuff
+# =======================
+def click_complete_for_instances(ctx, args, incomplete):
+    profile, region_name = click_bash_completion_parse_profile_and_region(args)
+    possible_instances = look_for_completion_keywords(profile, "instance=" + region_name, r'^(host|instance_id)$')
+    return possible_instances
+
+
+def click_complete_for_instance_ids(ctx, args, incomplete):
+    profile, region_name = click_bash_completion_parse_profile_and_region(args)
+    possible_instances = look_for_completion_keywords(profile, "instance=" + region_name, r'^instance_id$')
+    return possible_instances
+
+
 # ==================
 #  INSTANCE COMMAND
 # ==================
@@ -20,11 +35,8 @@ def instance_group(params):
     """ manage Amazon EC2 instances """
 
 
-click_global_completion_instances = click.Choice(look_for_completion_keywords("instance", r'^(host|instance_id)$'))
-
-
 @instance_group.command("stop")
-@click.argument('hostnames', nargs=-1, metavar='<host names>', type=click_global_completion_instances)
+@click.argument('hostnames', nargs=-1, metavar='<host names>', autocompletion=click_complete_for_instances)
 @click.option('--force', is_flag=True)
 @pass_global_parameters
 def stop_cmd(params, hostnames, force):
@@ -41,7 +53,7 @@ def stop_cmd(params, hostnames, force):
 
 
 @instance_group.command("start")
-@click.argument('hostnames', nargs=-1, metavar='<host names>', type=click_global_completion_instances)
+@click.argument('hostnames', nargs=-1, metavar='<host names>', autocompletion=click_complete_for_instances)
 @pass_global_parameters
 def start_cmd(params, hostnames):
     """ start an instance """
@@ -52,7 +64,7 @@ def start_cmd(params, hostnames):
 
 
 @instance_group.command("terminate")
-@click.argument('hostnames', nargs=-1, metavar='<host names>', type=click_global_completion_instances)
+@click.argument('hostnames', nargs=-1, metavar='<host names>', autocompletion=click_complete_for_instances)
 @click.option('--force', is_flag=True)
 @pass_global_parameters
 def terminate_cmd(params, hostnames, force):
@@ -69,7 +81,7 @@ def terminate_cmd(params, hostnames, force):
 
 
 @instance_group.command("ip")
-@click.argument('hostnames', nargs=-1, metavar='<host names>', type=click_global_completion_instances)
+@click.argument('hostnames', nargs=-1, metavar='<host names>', autocompletion=click_complete_for_instances)
 @click.option('-v', is_flag=True, help='show instance IDs as well')
 @pass_global_parameters
 def ip_cmd(params, hostnames, v):
@@ -93,7 +105,7 @@ def register_market_ami_instancecmd(params, n):
 
 @instance_group.command("set_instance_type", short_help='set instance type')
 @click.argument('new_instance_name', metavar='<new instance name>')
-@click.argument('hostname', metavar='<host name>', type=click_global_completion_instances)
+@click.argument('hostname', metavar='<host name>', autocompletion=click_complete_for_instances)
 @pass_global_parameters
 def change_instance_type_instancecmd(params, hostname, new_instance_name):
     """ change the instance type of a specified instance to a new one """
@@ -104,7 +116,7 @@ def change_instance_type_instancecmd(params, hostname, new_instance_name):
 
 
 @instance_group.command("set_host_name", short_help='set/fix host name')
-@click.argument('hostname', metavar='<host name>', type=click_global_completion_instances)
+@click.argument('hostname', metavar='<host name>', autocompletion=click_complete_for_instances)
 @pass_global_parameters
 def set_host_name(params, hostname):
     """ set or fix the host name of a specified host """
@@ -128,7 +140,7 @@ def set_host_name(params, hostname):
 
 
 @instance_group.command("set_api_termination", short_help='allow/disallow API termination')
-@click.argument('hostname', metavar='<host name>', type=click_global_completion_instances)
+@click.argument('hostname', metavar='<host name>', autocompletion=click_complete_for_instances)
 @click.option('--allow', is_flag=True, help="allow API termination")
 @click.option('--disallow', is_flag=True, help="disallow API termination")
 @pass_global_parameters
@@ -147,7 +159,7 @@ def set_api_termination_instancecmd(params, hostname, allow, disallow):
 @instance_group.command("set_ebs_optimization", short_help='enable/disable EBS optimization')
 @click.option('--on', is_flag=True, help="turn on EBS optimization")
 @click.option('--off', is_flag=True, help="turn off EBS optimization")
-@click.argument('hostname', metavar='<host name>', type=click_global_completion_instances)
+@click.argument('hostname', metavar='<host name>', autocompletion=click_complete_for_instances)
 @pass_global_parameters
 def set_ebs_optimization_instancecmd(params, hostname, on, off):
     """ enable/disable the EBS optimization for a given instance
@@ -162,7 +174,7 @@ def set_ebs_optimization_instancecmd(params, hostname, on, off):
 
 
 @instance_group.command("createimage", short_help='create a machine image (AMI)')
-@click.argument('hostname', metavar='<host name>', type=click_global_completion_instances)
+@click.argument('hostname', metavar='<host name>', autocompletion=click_complete_for_instances)
 @click.argument('name')
 @click.argument('description')
 @click.argument('options', nargs=-1)
@@ -660,7 +672,7 @@ def launch_instancecmd(ctx, params, name, instancetype, amiid, keyname, vpc, sub
 
 
 @instance_group.command("settag")
-@click.argument('hostname', type=click_global_completion_instances)
+@click.argument('hostname', metavar='<host name>', autocompletion=click_complete_for_instances)
 @click.argument('tagname')
 @click.argument('tagvalue')
 @pass_global_parameters
@@ -673,7 +685,7 @@ def settag_instancecmd(params, hostname, tagname, tagvalue):
 
 
 @instance_group.command("rmtag")
-@click.argument('hostname', type=click_global_completion_instances)
+@click.argument('hostname', metavar='<host name>', autocompletion=click_complete_for_instances)
 @click.argument('tagname')
 @click.argument('tagvalue', required=False)
 @pass_global_parameters
@@ -690,7 +702,7 @@ def removetag_instancecmd(params, hostname, tagname, tagvalue):
 
 
 @instance_group.command("name")
-@click.argument('instanceid')
+@click.argument('instanceid', metavar='<instance ID>', autocompletion=click_complete_for_instance_ids)
 @click.argument('hostname')
 @pass_global_parameters
 def name_instancecmd(params, instanceid, hostname):
@@ -772,7 +784,7 @@ def list_instance_instancecmd(params, verbose, argdoc, attr, allregions, subargs
             completion_keywords += [{"host": row[0]}, {"instance_id": row[1]}, {"ip": inst.public_ip_address}]
     except AttributeError as e:
         error_exit(str(e) + "\nNo such attribute.\nTry 'taw list --argdoc' to see all attributes.")
-    update_completion_keywords(completion_keywords, "instance")
+    update_completion_keywords(completion_keywords, "instance=" + get_aws_region())
 
     def coloring(r):
         if verbose: return None

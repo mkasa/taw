@@ -1147,15 +1147,16 @@ def look_for_completion_keywords(profile, cache_name, cache_type=None):
     profile_cache_dir = get_profile_cache_directory(profile)
     if profile_cache_dir is None: return []
     possible_keywords = []
+    cache_file_name = os.path.join(profile_cache_dir, cache_name)
     try:
-        with open(os.path.join(profile_cache_dir, cache_name), "r") as f:
+        with open(cache_file_name) as f:
             for record in f:
                 row = record.rstrip().split("\t")
                 if 2 <= len(row) and (cache_type is None or re.search(cache_type, row[0])):
                     possible_keywords.append(row[1])
         return possible_keywords
     except:
-        return []
+        return ["Cache open error '" + cache_file_name]
 
 
 def look_for_completion_profile():
@@ -1181,7 +1182,7 @@ def click_bash_completion_parse_profile_and_region(args):
                  therefore you might see a wrong parsing result for complex command lines.
                  implementing a full-feature parser that exactly behaves like click is a waste of time.
     """
-    parsed_profile = "default"
+    parsed_profile = None
     parsed_region = None
     i = -1
     while True:
@@ -1229,31 +1230,38 @@ def click_bash_completion_parse_profile_and_region(args):
             parsed_region = "noregion" # invalid
             continue
 
-    if parsed_profile is None and "AWS_PROFILE" in os.environ:
-        parsed_profile = os.environ["AWS_PROFILE"]
-    if parsed_region is None:
-        if "AWS_DEFAULT_REGION" in os.environ:
-            parsed_region = os.environ["AWS_DEFAULT_REGION"]
+    if parsed_profile is None:
+        if "AWS_PROFILE" in os.environ:
+            parsed_profile = os.environ["AWS_PROFILE"]
         else:
-            if (3, 0) <= sys.version_info:
-                import configparser
-                configp = configparser.SafeConfigParser()
-            else:
-                import ConfigParser
-                configp = ConfigParser.SafeConfigParser()
-        #    try:
-            configp.read(os.path.join(home_dir, ".aws", "config"))
-            if parsed_profile == 'default':
-                section_name = 'default'
-            else:
-                section_name = 'profile ' + parsed_profile
-            region_name_in_config = configp.get(section_name, 'region')
-            if region_name_in_config is not None:
-                parsed_region = region_name_in_config
-            #except:
-            #    pass
+            parsed_profile = "default"
+    if parsed_region is None:
+        parsed_region = read_default_region_from_config(parsed_profile)
 
     return (parsed_profile, parsed_region)
+
+
+def read_default_region_from_config(profile_name):
+    """ read the default region from ~/.aws/config """
+    if profile_name is None:
+        if "AWS_PROFILE" in os.environ:
+            profile_name = os.environ["AWS_PROFILE"]
+        else:
+            profile_name = 'default'
+    if "AWS_DEFAULT_REGION" in os.environ:
+        return os.environ["AWS_DEFAULT_REGION"]
+    if (3, 0) <= sys.version_info:
+        import configparser
+        configp = configparser.SafeConfigParser()
+    else:
+        import ConfigParser
+        configp = ConfigParser.SafeConfigParser()
+    configp.read(os.path.join(home_dir, ".aws", "config"))
+    if profile_name == 'default':
+        section_name = 'default'
+    else:
+        section_name = 'profile ' + profile_name
+    return configp.get(section_name, 'region')
 
 
 def look_for_completion_region():
