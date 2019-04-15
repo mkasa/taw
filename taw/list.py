@@ -231,43 +231,6 @@ def list_cmd(params, restype, verbose, argdoc, attr, subargs, allregions):
             error_exit(str(e) + "\nNo such attribute.\nTry 'taw list --argdoc' to see all attributes.")
         output_table(params, header, rows)
 
-    def list_zones(zone_name_if_any):
-        """ list all zones hosted by Route53 """
-        if argdoc:
-            click.launch('http://boto3.readthedocs.io/en/latest/reference/services/route53.html#Route53.Client.list_hosted_zones')
-            return
-        if allregions: error_exit("Route53 zones are all global, so --allregions option is pointless.")
-        if 0 < len(zone_name_if_any):
-            if 1 < len(zone_name_if_any): error_exit("Only single zone name is accepted.")
-            zone_name = zone_name_if_any[0]
-            zone_id = convert_zone_name_to_zone_id(zone_name)
-
-            def remove_trailing_domain_name(d):
-                if d.endswith('.' + zone_name): return d[:-len(zone_name) - 1]
-                if d.endswith('.' + zone_name + '.'): return d[:-len(zone_name) - 2]
-                return d
-            all_list_columns = [
-                    (True, "Name"           , "Name" , remove_trailing_domain_name)      ,
-                    (True, "TTL"            , "TTL"  , ident)                            ,
-                    (True, "Type"           , "Type" , ident)                            ,
-                    (True, "ResourceRecords", "Value", lambda x: [y['Value'] for y in x]),
-                ]
-            list_columns = [x for x in all_list_columns if verbose or x[0]]
-            for v in attr: list_columns.append((True, v, v, ident))
-            header = [x[2] for x in list_columns]; rows = []
-            r53 = get_r53_connection()
-            for zone in r53.list_resource_record_sets(HostedZoneId=zone_id)['ResourceRecordSets']:
-                row = [f(zone[i]) for _, i, _, f in list_columns]
-                rows.append(row)
-        else:
-            r53 = get_r53_connection()
-            header = ['Name', 'Comment', 'IsPrivate', 'RecordSetCount']; rows = []
-            for zone in r53.list_hosted_zones()['HostedZones']:
-                config = zone['Config']
-                row = [zone['Name'], config['Comment'] if 'Comment' in config else '',
-                       config['PrivateZone'] if 'PrivateZone' in config else '', zone['ResourceRecordSetCount']]
-                rows.append(row)
-        output_table(params, header, rows)
 
     def list_s3_buckets(bucket_name_if_any):
         """ list all buckets (or a specified one) in S3 """
@@ -477,6 +440,14 @@ def list_cmd(params, restype, verbose, argdoc, attr, subargs, allregions):
         s = boto3.session.Session()
         import __main__
         cmdline = [__main__.__file__] + params.global_opt_str + ['image', 'list'] + list(subargs)
+        subprocess.check_call(cmdline)
+
+    def list_zones(dummy_argument):
+        """ List Route53 zones.
+            """
+        s = boto3.session.Session()
+        import __main__
+        cmdline = [__main__.__file__] + params.global_opt_str + ['zone', 'list'] + list(subargs)
         subprocess.check_call(cmdline)
 
     # def list_test():

@@ -162,9 +162,47 @@ def rm_zonecmd(params, zonename, name, type_str, force):
             ]])
 
 
-@zone_group.command("list", add_help_option=False, context_settings=dict(ignore_unknown_options=True))
-@click.argument('args', nargs=-1, type=click.UNPROCESSED)
-@click.pass_context
-def list_instancecmd(ctx, args):
-    """ list zones """
-    with taw.make_context('taw', ctx.obj.global_opt_str + ['list', 'zone'] + list(args)) as ncon: _ = taw.invoke(ncon)
+@zone_group.command("list")
+@click.option('--verbose', '-v', is_flag=True, help='Verbose output.')
+@click.option('--argdoc', is_flag=True, help='Show available attributes in a web browser')
+@click.option('--attr', '-a', multiple=True, help='Attribute name(s).')
+@click.option('--allregions', is_flag=True, help='List for all regions.')
+@click.argument('zone_name_if_any', nargs=-1, metavar='<zone name(s)>')
+@pass_global_parameters
+def list_zones(params, argdoc, verbose, attr, allregions, zone_name_if_any):
+    """ list all zones hosted by Route53 """
+    if argdoc:
+        click.launch('http://boto3.readthedocs.io/en/latest/reference/services/route53.html#Route53.Client.list_hosted_zones')
+        return
+    if allregions: error_exit("Route53 zones are all global, so --allregions option is pointless.")
+    if 0 < len(zone_name_if_any):
+        if 1 < len(zone_name_if_any): error_exit("Only single zone name is accepted.")
+        zone_name = zone_name_if_any[0]
+        zone_id = convert_zone_name_to_zone_id(zone_name)
+
+        def remove_trailing_domain_name(d):
+            if d.endswith('.' + zone_name): return d[:-len(zone_name) - 1]
+            if d.endswith('.' + zone_name + '.'): return d[:-len(zone_name) - 2]
+            return d
+        all_list_columns = [
+                (True, "Name"           , "Name" , remove_trailing_domain_name)      ,
+                (True, "TTL"            , "TTL"  , ident)                            ,
+                (True, "Type"           , "Type" , ident)                            ,
+                (True, "ResourceRecords", "Value", lambda x: [y['Value'] for y in x]),
+            ]
+        list_columns = [x for x in all_list_columns if verbose or x[0]]
+        for v in attr: list_columns.append((True, v, v, ident))
+        header = [x[2] for x in list_columns]; rows = []
+        r53 = get_r53_connection()
+        for zone in r53.list_resource_record_sets(HostedZoneId=zone_id)['ResourceRecordSets']:
+            row = [f(zone[i]) for _, i, _, f in list_columns]
+            rows.append(row)
+    else:
+        r53 = get_r53_connection()
+        header = ['Name', 'Comment', 'IsPrivate', 'RecordSetCount']; rows = []
+        for zone in r53.list_hosted_zones()['HostedZones']:
+            config = zone['Config']
+            row = [zone['Name'], config['Comment'] if 'Comment' in config else '',
+                   config['PrivateZone'] if 'PrivateZone' in config else '', zone['ResourceRecordSetCount']]
+            rows.append(row)
+    output_table(params, header, rows)
