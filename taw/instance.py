@@ -21,7 +21,7 @@ def instance_group(params):
 
 
 @instance_group.command("stop")
-@click.argument('hostnames', nargs=-1, metavar='<host names>')
+@click.argument('hostnames', nargs=-1, metavar='<host names>', type=click.Choice(look_for_completion_keywords("instance")))
 @click.option('--force', is_flag=True)
 @pass_global_parameters
 def stop_cmd(params, hostnames, force):

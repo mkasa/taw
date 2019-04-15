@@ -1135,14 +1135,14 @@ def update_completion_keywords(completion_keywords, cache_name):
                 print("%s\t%s" % (k, v), file=f)
 
 
-def look_for_completion_keywords(completion_keywords, cache_name, cache_type=None):
+def look_for_completion_keywords(cache_name, cache_type=None):
     profile_cache_dir = get_profile_cache_directory()
     if profile_cache_dir is None: return []
     possible_keywords = []
     with open(os.path.join(profile_cache_dir, cache_name), "r") as f:
         for record in f:
             row = record.split("\t")
-            if 2 <= len(row) and (cache_type is not None or row[0] == cache_type):
+            if 2 <= len(row) and (cache_type is None or re.search(cache_type, row[0])):
                 possible_keywords.append(row[1])
     return possible_keywords
 
