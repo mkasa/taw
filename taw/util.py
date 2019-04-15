@@ -9,6 +9,7 @@ import pyperclip, time, sqlite3, pickle, readline
 from termcolor import colored
 import csv
 import re
+import six
 
 
 # Global variables
@@ -244,7 +245,7 @@ region_name_to_region_nickname = {
         "ap-northeast-3" : "osaka",
         "ap-south-1"     : "mumbai"
     }
-region_nickname_to_region_name = dict([(v, k) for k, v in region_name_to_region_nickname.items()])
+region_nickname_to_region_name = dict([(v, k) for k, v in six.iteritems(region_name_to_region_nickname)])
 
 
 def normalize_region_name(region_name, error_on_exit=True):
@@ -477,7 +478,7 @@ def multicolumn_tabulate(rows, header, coloring):
                 for func in coloring:
                     result = func(row)
                     if result is not None:
-                        for k, v in result.items():
+                        for k, v in six.iteritems(result):
                             if k != -1:
                                 color[k] = v
                             else:
@@ -1110,19 +1111,20 @@ def register_AMI_ID_to_local_database(do_not_open_browser):
         print_info("If you wish to continue registering more AMI, please execute the same command with '-n' option")
 
 
-def get_profile_cache_directory():
+def get_profile_cache_directory(profile_name_str=None):
     if not os.path.exists(taw_cache_dir):
         try:
             os.mkdir(taw_cache_dir)
         except:
             return None
-    if param_profile is None:
-        if "AWS_PROFILE" in os.environ:
-            profile_name_str = os.environ["AWS_PROFILE"]
+    if profile_name_str is None:
+        if param_profile is None:
+            if "AWS_PROFILE" in os.environ:
+                profile_name_str = os.environ["AWS_PROFILE"]
+            else:
+                profile_name_str = "default"
         else:
-            profile_name_str = "default"
-    else:
-        profile_name_str = param_profile
+            profile_name_str = param_profile
     profile_cache_dir = os.path.join(taw_cache_dir, profile_name_str)
     if not os.path.exists(profile_cache_dir):
         try:
@@ -1141,14 +1143,14 @@ def update_completion_keywords(completion_keywords, cache_name):
                 print("%s\t%s" % (k, v), file=f)
 
 
-def look_for_completion_keywords(cache_name, cache_type=None):
-    profile_cache_dir = get_profile_cache_directory()
+def look_for_completion_keywords(profile, cache_name, cache_type=None):
+    profile_cache_dir = get_profile_cache_directory(profile)
     if profile_cache_dir is None: return []
     possible_keywords = []
     try:
         with open(os.path.join(profile_cache_dir, cache_name), "r") as f:
             for record in f:
-                row = record.split("\t")
+                row = record.rstrip().split("\t")
                 if 2 <= len(row) and (cache_type is None or re.search(cache_type, row[0])):
                     possible_keywords.append(row[1])
         return possible_keywords
@@ -1170,6 +1172,88 @@ def look_for_completion_profile():
     except:
         return possible_keywords
     return possible_keywords
+
+
+def click_bash_completion_parse_profile_and_region(args):
+    """ return the region name the user specified in the command line given as args
+
+        warning: this parser is sloppy and not a full-featured parser.
+                 therefore you might see a wrong parsing result for complex command lines.
+                 implementing a full-feature parser that exactly behaves like click is a waste of time.
+    """
+    parsed_profile = "default"
+    parsed_region = None
+    i = -1
+    while True:
+        i += 1
+        if len(args) <= i: break
+        v = args[i]
+        if not v.startswith("-"):
+            break
+        if v.startswith("-p"):
+            if 2 < len(v):
+                parsed_profile = v[2:]
+                continue
+            if i + 1 < len(args):
+                parsed_profile = v[i + 1]
+                continue
+            parsed_profile = "default" # invalid
+            continue
+        if v.startswith("--profile"):
+            if 9 < len(v):
+                if v[9] == '=':
+                    parsed_profile = v[10:]
+                    continue
+            if i + 1 < len(args):
+                parsed_profile = v[i + 1]
+                continue
+            parsed_profile = "default" # invalid
+            continue
+        if v.startswith("-r"):
+            if 2 < len(v):
+                parsed_region = v[2:]
+                continue
+            if i + 1 < len(args):
+                parsed_region = v[i + 1]
+                continue
+            parsed_region = "noregion" # invalid
+            continue
+        if v.startswith("--region"):
+            if 8 < len(v):
+                if v[8] == '=':
+                    parsed_region = v[10:]
+                    continue
+            if i + 1 < len(args):
+                parsed_region = v[i + 1]
+                continue
+            parsed_region = "noregion" # invalid
+            continue
+
+    if parsed_profile is None and "AWS_PROFILE" in os.environ:
+        parsed_profile = os.environ["AWS_PROFILE"]
+    if parsed_region is None:
+        if "AWS_DEFAULT_REGION" in os.environ:
+            parsed_region = os.environ["AWS_DEFAULT_REGION"]
+        else:
+            if (3, 0) <= sys.version_info:
+                import configparser
+                configp = configparser.SafeConfigParser()
+            else:
+                import ConfigParser
+                configp = ConfigParser.SafeConfigParser()
+        #    try:
+            configp.read(os.path.join(home_dir, ".aws", "config"))
+            if parsed_profile == 'default':
+                section_name = 'default'
+            else:
+                section_name = 'profile ' + parsed_profile
+            region_name_in_config = configp.get(section_name, 'region')
+            if region_name_in_config is not None:
+                parsed_region = region_name_in_config
+            #except:
+            #    pass
+
+    return (parsed_profile, parsed_region)
 
 
 def look_for_completion_region():
