@@ -2,7 +2,7 @@
 
 from __future__ import print_function
 from __future__ import absolute_import
-import os, sys, subprocess, re, datetime, glob
+import os, sys, subprocess, re, datetime, glob, six
 import click, boto3, fnmatch
 import sqlite3
 from taw.util import *
@@ -308,7 +308,7 @@ def list_cmd(params, restype, verbose, argdoc, attr, subargs, allregions):
                     row = [f(getattr(obj, i)) for _, i, _, f in list_columns]  # noqa: F812
                     if verbose:
                         id_to_perm_bits = grants_to_id_to_perm_bits(obj.Acl().grants)
-                        row.append(", ".join([k + "(" + perm_bit_to_str(v) + ")" for k, v in id_to_perm_bits.items()]))
+                        row.append(", ".join([k + "(" + perm_bit_to_str(v) + ")" for k, v in six.iteritems(id_to_perm_bits)]))
                     rows.append(row)
             except AttributeError as e:
                 error_exit(str(e) + "\nNo such attribute.\nTry 'taw list --argdoc' to see all attributes.")
@@ -326,7 +326,7 @@ def list_cmd(params, restype, verbose, argdoc, attr, subargs, allregions):
                     bucket_name = b.name
                     row = [f(getattr(b, i)) for _, i, _, f in list_columns]
                     id_to_perm_bits = grants_to_id_to_perm_bits(b.Acl().grants)
-                    row.append(", ".join([k + "(" + perm_bit_to_str(v) + ")" for k, v in id_to_perm_bits.items()]))
+                    row.append(", ".join([k + "(" + perm_bit_to_str(v) + ")" for k, v in six.iteritems(id_to_perm_bits.items)]))
                     if verbose:
                         # NOTE: should do better in the future.
                         #       see https://github.com/boto/boto3/issues/292

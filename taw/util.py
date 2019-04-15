@@ -584,7 +584,7 @@ def call_function_by_unambiguous_prefix(call_table, prefix_string, subargs):
         subargs is an argument to the callee
     """
     candidates = []
-    for k, v in call_table.items():
+    for k, v in six.iteritems(call_table):
         if k.startswith(prefix_string):
             candidates.append((k, v))
     if len(candidates) == 0:
@@ -1055,7 +1055,7 @@ def register_AMI_ID_to_local_database(do_not_open_browser):
                         ami_id = res.group(2)
                         region_id = None
                         if is_debugging: print("  Image %s at %s" % (ami_id, region_nickname))
-                        for k, v in region_name_to_region_nickname.items():
+                        for k, v in six.iteritems(region_name_to_region_nickname):
                             if re.search(v, region_nickname, re.I):
                                 region_id = k
                                 break
@@ -1139,7 +1139,7 @@ def update_completion_keywords(completion_keywords, cache_name):
     if profile_cache_dir is None: return
     with open(os.path.join(profile_cache_dir, cache_name), "w") as f:
         for record in completion_keywords:
-            for k, v in record.items():
+            for k, v in six.iteritems(record):
                 print("%s\t%s" % (k, v), file=f)
 
 
@@ -1266,7 +1266,7 @@ def read_default_region_from_config(profile_name):
 
 def look_for_completion_region():
     possible_keywords = []
-    for k, v in region_name_to_region_nickname.items():
+    for k, v in six.iteritems(region_name_to_region_nickname):
         possible_keywords += [k, v]
     return possible_keywords
 

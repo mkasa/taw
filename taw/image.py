@@ -2,7 +2,7 @@
 
 from __future__ import print_function
 from __future__ import absolute_import
-import click
+import click, six
 from taw.util import *
 from taw.taw import *  # This must be the end of imports
 
@@ -14,7 +14,7 @@ def device_mappings_to_device_mapping_strs(xs):
     rows = []
     for d in xs:
         devs = []
-        for k, v in d.items():
+        for k, v in six.iteritems(d):
             if k == 'Ebs':
                 dev = "%s[%s](%sGB, %s, %s%s)" % (k.upper(), v['SnapshotId'], v['VolumeSize'], v['VolumeType'],
                                                        'Encrypted' if v['Encrypted'] == 'True' else 'Unencrypted',
