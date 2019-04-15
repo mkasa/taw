@@ -7,9 +7,13 @@ import boto3
 import tabulate, json
 import pyperclip, time, sqlite3, pickle, readline
 from termcolor import colored
+import csv
+import re
+
 
 # Global variables
 home_dir = os.environ['HOME']
+taw_cache_dir = os.path.join(home_dir, ".taw")
 param_region = None
 param_profile = None
 is_debugging = False
@@ -1104,6 +1108,59 @@ def register_AMI_ID_to_local_database(do_not_open_browser):
     print_info("Successfully registered the AMI info for '%s'" % image_name)
     if not do_not_open_browser:
         print_info("If you wish to continue registering more AMI, please execute the same command with '-n' option")
+
+
+def get_profile_cache_directory():
+    if not os.path.exists(taw_cache_dir):
+        try:
+            os.mkdir(taw_cache_dir)
+        except:
+            return None
+    profile_name_str = "default" if param_profile == None else param_profile
+    profile_cache_dir = os.path.join(taw_cache_dir, profile_name_str)
+    if not os.path.exists(profile_cache_dir):
+        try:
+            os.mkdir(profile_cache_dir)
+        except:
+            return None
+    return profile_cache_dir
+
+
+def update_completion_keywords(completion_keywords, cache_name):
+    profile_cache_dir = get_profile_cache_directory()
+    if profile_cache_dir is None: return
+    with open(os.path.join(profile_cache_dir, cache_name), "w") as f:
+        for record in completion_keywords:
+            for k, v in record.items():
+                print("%s\t%s" % (k, v), file=f)
+
+
+def look_for_completion_keywords(completion_keywords, cache_name, cache_type=None):
+    profile_cache_dir = get_profile_cache_directory()
+    if profile_cache_dir is None: return []
+    possible_keywords = []
+    with open(os.path.join(profile_cache_dir, cache_name), "r") as f:
+        for record in f:
+            row = record.split("\t")
+            if 2 <= len(row) and (cache_type is not None or row[0] == cache_type):
+                possible_keywords.append(row[1])
+    return possible_keywords
+
+
+def look_for_completion_profile():
+    possible_keywords = []
+    try:
+        with open(os.path.join(home_dir, ".aws", "config")) as f:
+            for line in f:
+                res = re.match(r'\[(profile (.*?)|default)\]', line)
+                if res:
+                    if res.group(1) == "default":
+                        possible_keywords.append('default')
+                    else:
+                        possible_keywords.append(res.group(2))
+    except:
+        return possible_keywords
+    return possible_keywords
 
 
 def wait_for_clipboard_to_update(minimum_size=0):

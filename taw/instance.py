@@ -759,14 +759,17 @@ def list_instance_instancecmd(params, verbose, argdoc, attr, allregions, subargs
     instances = ec2.instances.all()
     subnets = list(ec2.subnets.all())
     vpcs = list(ec2.vpcs.all())
+    completion_keywords = []
     try:
         for inst in instances:
             row = [f(getattr(inst, i)) for _, i, _, f in list_columns]
             row.append([extract_name_from_tags(i.tags, inst.subnet_id) for i in subnets if i.id == inst.subnet_id])
             row.append([extract_name_from_tags(i.tags, inst.vpc_id) for i in vpcs if i.id == inst.vpc_id])
             rows.append(row)
+            completion_keywords += [{"host": row[0]}, {"instance_id": row[1]}, {"ip": inst.public_ip_address}]
     except AttributeError as e:
         error_exit(str(e) + "\nNo such attribute.\nTry 'taw list --argdoc' to see all attributes.")
+    update_completion_keywords(completion_keywords, "instance")
 
     def coloring(r):
         if verbose: return None

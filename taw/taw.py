@@ -30,7 +30,7 @@ pass_global_parameters = click.make_pass_decorator(GlobalParameters)
 @click.option('--format', '-f', 'format_type', default='simple_with_color', help='Output format.')
 @click.option('--noless', '-n', is_flag=True, help='Do not invoke less.')
 @click.option('--debug', is_flag=True, help='Turn on debugging.')
-@click.option('--profile', '-p', 'aws_profile', help='Choose profile.')
+@click.option('--profile', '-p', 'aws_profile', help='Choose profile.', type=click.Choice(look_for_completion_profile()))
 @click.option('--dryrun', is_flag=True, help='Dry-run. This may not be supported by commands that do not change the state.')
 @click.option('--subprocess', help='Used internally')
 @click.pass_context
