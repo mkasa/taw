@@ -10,6 +10,7 @@ from termcolor import colored
 import csv
 import re
 import six
+import dns.resolver
 
 
 # Global variables
@@ -935,20 +936,15 @@ def expand_cidr_string(unexpanded_cidr_string):
            '123.45.67.89/24' => '123.45.67.89/24'
         2) 'any'/'all' is expanded.
            'any' => '0.0.0.0/0'
-        3) 'self' is expanded to my IP. This requires pystun library (that works only on Python 2.x for now)
+        3) 'self' is expanded to my IP. This requires Google DNS that tells us our IP.
            'self' => '123.45.67.89/32'
     """
     if unexpanded_cidr_string == 'any' or unexpanded_cidr_string == 'all': return '0.0.0.0/0'
     if unexpanded_cidr_string == 'self':
-        if sys.version_info < (3, 0):
-            # NOTE: not tested
-            import pystun
-            nat_type, external_ip, external_port = stun.get_ip_info()  # noqa: F821
-            if nat_type == pystun.Blocked:
-                error_exit("Cannot reach to a STUN server so cannot find my external IP")
-            return external_ip
-        else:
-            error_exit("'self' can be used only with Python 2.x because a dependent library is not compatible with Python 3.x")
+        maybe_external_ip = get_my_ip_address()
+        if maybe_external_ip is None:
+            error_exit("Failed in determining my public IP. Alternatively, you can manually find your IP by https://get-myip.com/ or similar services.")
+        return maybe_external_ip
     return unexpanded_cidr_string
 
 
@@ -1344,3 +1340,23 @@ def click_never_validate(ctx, param, value):
     """ this is a 'never validate'-policy validator """
     return value
 
+
+def get_my_ip_address():
+    """ Get my IP address. Returns `self public IP` as a byte string (bytes), returns None when an error occurs.
+
+        This can be used for determining your `self public IP aderess`,
+        which is a public IP address that can be used for setting firewall rules
+        such as `allowing SSH access from my IP`. Since there is no portable and
+        generic methods for obtaining the public IP address when you are behind
+        a NAT router (IP masquarade), here we trust Google web services in the
+        hope that they will be available for longer time than other services
+        I could think of.
+    """
+    answer = dns.resolver.query("o-o.myaddr.l.google.com", "TXT")
+    for record in answer:
+        for txt_string in record.strings:
+            return txt_string
+        else:
+            print_warning("Failed to determine the self public IP address. This may happen Google DNS service is not working as expected.")
+    print_warning("Failed to determine the self public IP address. This may happen when DNS queries to Google DNS are blocked or when the service is unavailable.")
+    return None
