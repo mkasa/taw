@@ -872,8 +872,18 @@ def parse_port_string(port_str):
 
 
 def parse_protocol_port_string(prot_port_str):
+    if prot_port_str == "ssh":
+        prot_port_str = "tcp/22"
+    elif prot_port_str == "http":
+        prot_port_str = "tcp/80"
+    elif prot_port_str == "https":
+        prot_port_str = "tcp/443"
+    elif prot_port_str == "smtp":
+        prot_port_str = "tcp/25"
+    elif prot_port_str == "mosh":
+        prot_port_str = "udp/60000-61000"
     port_arr = prot_port_str.split("/")
-    if len(port_arr) <= 0: error_exit("protocol must be one of 'icmp', 'tcp/<port nums>', 'udp/<port nums>', where <port nums> is a number or a range (eg. 100-120)")
+    if len(port_arr) <= 0: error_exit("protocol must be one of 'icmp', 'tcp/<port nums>', 'udp/<port nums>', where <port nums> is a number or a range (eg. 100-120). Several service names such as ssh, http, https are also supported.")
     if len(port_arr) <= 1:
         arg_service_name = port_arr[0]
         try:
@@ -1352,7 +1362,14 @@ def get_my_ip_address():
         hope that they will be available for longer time than other services
         I could think of.
     """
-    answer = dns.resolver.query("o-o.myaddr.l.google.com", "TXT")
+    ns_ip = dns.resolver.query("ns1.google.com", "A")
+    if ns_ip is None or len(ns_ip) < 1:
+        print_warning("Failed to determine the Google DNS server.")
+        return None
+    google_ns1_ip = str(ns_ip[0])
+    resolver = dns.resolver.Resolver()
+    resolver.nameservers = [google_ns1_ip]
+    answer = resolver.query("o-o.myaddr.l.google.com", "TXT")
     for record in answer:
         for txt_string in record.strings:
             return txt_string.decode('ascii')
