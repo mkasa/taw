@@ -944,7 +944,7 @@ def expand_cidr_string(unexpanded_cidr_string):
         maybe_external_ip = get_my_ip_address()
         if maybe_external_ip is None:
             error_exit("Failed in determining my public IP. Alternatively, you can manually find your IP by https://get-myip.com/ or similar services.")
-        return maybe_external_ip
+        return maybe_external_ip + "/32"
     return unexpanded_cidr_string
 
 
@@ -1355,7 +1355,7 @@ def get_my_ip_address():
     answer = dns.resolver.query("o-o.myaddr.l.google.com", "TXT")
     for record in answer:
         for txt_string in record.strings:
-            return txt_string
+            return txt_string.decode('ascii')
         else:
             print_warning("Failed to determine the self public IP address. This may happen Google DNS service is not working as expected.")
     print_warning("Failed to determine the self public IP address. This may happen when DNS queries to Google DNS are blocked or when the service is unavailable.")
