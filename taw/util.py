@@ -239,12 +239,17 @@ region_name_to_region_nickname = {
         "eu-west-2"      : "london",
         "eu-west-3"      : "paris",
         "eu-central-1"   : "frankfurt",
+        "eu-south-1"     : "milano",
+        "eu-north-1"     : "stockholm",
         "ap-southeast-1" : "singapore",
         "ap-southeast-2" : "sydney",
         "ap-northeast-1" : "tokyo",
         "ap-northeast-2" : "seoul",
         "ap-northeast-3" : "osaka",
-        "ap-south-1"     : "mumbai"
+        "ap-south-1"     : "mumbai",
+        "ap-east-1"      : "hongkong",
+        "af-south-1"     : "capetown",
+        "me-south-1"     : "bahrain",
     }
 region_nickname_to_region_name = dict([(v, k) for k, v in six.iteritems(region_name_to_region_nickname)])
 
