@@ -15,6 +15,7 @@ depending_libraries = \
         'pyperclip',
         'awscli>=1.11.35',
         'dnspython',
+        'ipython'
     ]
 if sys.version_info < (3, 0):
     depending_libraries.append('pysqlite')  # this is only needed by Python 2.x
@@ -23,7 +24,7 @@ else:
 
 setup(
         name='tiny-amazon-wrapper',
-        version='0.1.1',
+        version='0.2.0',
         packages=find_packages(),
         include_package_data=True,
         install_requires=depending_libraries,
