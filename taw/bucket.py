@@ -166,8 +166,12 @@ def cp_bucketcmd(params, src, dst, reduced, lowaccess, onezone, contenttype, ove
                     content_type_for_this_file = get_default_content_type(dest_key_name)
                 if is_debugging: print("%s to [%s]:%s (TYPE: %s)" % (fn, dest_bucket, dest_key_name, content_type_for_this_file), file=sys.stderr)
                 exargs = {'StorageClass': storage_class,
-                          'ContentType': content_type_for_this_file,
-                          'ACL': permission}
+                          'ContentType': content_type_for_this_file}
+                if permission is not None: exargs['ACL'] = permission
+                if is_debugging:
+                    print(f'{dest_bucket=}')
+                    print(f'{dest_key_name=}')
+                    print(f'{exargs=}')
                 s3.meta.client.upload_file(fn, dest_bucket, dest_key_name, ExtraArgs=exargs)
         else:
             if dest_bucket is None:
@@ -177,6 +181,10 @@ def cp_bucketcmd(params, src, dst, reduced, lowaccess, onezone, contenttype, ove
                 for obj in bucket.objects.all():
                     if src_path != '' and not fnmatch.fnmatch(obj.key, src_path): continue
                     any_file_is_copied = True
+                    if is_debugging:
+                        print(f'{src_bucket=}')
+                        print(f'{obj.key=}')
+                        print(f'{dest_path=}')
                     if is_local_path_directory:
                         if is_debugging: print("LOCAL FILE=%s/" % os.path.basename(obj.key), file=sys.stderr)
                         s3.meta.client.download_file(src_bucket, obj.key, os.path.join(dest_path, obj.key))
@@ -207,6 +215,11 @@ def cp_bucketcmd(params, src, dst, reduced, lowaccess, onezone, contenttype, ove
                         if overwritecontenttype:
                             exargs['MetadataDirective'] = 'REPLACE'
                             exargs['ContentType'] = content_type_for_this_file
+                        if is_debugging:
+                            print(f'{src_bucket=}')
+                            print(f'{obj.key=}')
+                            print(f'{dest_bucket=}')
+                            print(f'{exargs=}')
                         s3_client.copy({'Bucket': src_bucket, 'Key': obj.key},
                                        dest_bucket, obj.key if dest_path == '' else dest_path,
                                        ExtraArgs=exargs)
