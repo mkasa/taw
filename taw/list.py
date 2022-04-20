@@ -326,7 +326,7 @@ def list_cmd(params, restype, verbose, argdoc, attr, subargs, allregions):
                     bucket_name = b.name
                     row = [f(getattr(b, i)) for _, i, _, f in list_columns]
                     id_to_perm_bits = grants_to_id_to_perm_bits(b.Acl().grants)
-                    row.append(", ".join([k + "(" + perm_bit_to_str(v) + ")" for k, v in six.iteritems(id_to_perm_bits.items)]))
+                    row.append(", ".join([k + "(" + perm_bit_to_str(v) + ")" for k, v in six.iteritems(id_to_perm_bits)]))
                     if verbose:
                         # NOTE: should do better in the future.
                         #       see https://github.com/boto/boto3/issues/292
