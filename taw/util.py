@@ -2,12 +2,11 @@
 
 from __future__ import print_function
 import os, sys, click
-import subprocess, re, datetime, mimetypes
+import subprocess, datetime, mimetypes
 import boto3
 import tabulate, json
 import pyperclip, time, sqlite3, pickle, readline
 from termcolor import colored
-import csv
 import re
 import six
 import dns.resolver
