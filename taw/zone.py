@@ -43,7 +43,7 @@ def complete_subdomain_name(possibly_subdomain, domain_name):
 
 
 @zone_group.command("add")
-@click.argument('zonename', metavar='<zone name)>', autocompletion=click_complete_for_zones)
+@click.argument('zonename', metavar='<zone name)>', shell_complete=click_complete_for_zones)
 @click.argument('name', metavar='<subdomain name>')
 @click.argument('type_str', metavar='<A|NS|TXT|...>', type=click_global_dns_record_types)
 @click.argument('values', nargs=-1, required=True, metavar='<value (eg: 123.45.67.89)>')
@@ -76,7 +76,7 @@ def add_zonecmd(params, zonename, name, type_str, values, ttl, weight):
 
 
 @zone_group.command("name")
-@click.argument('zonename', metavar='<zone name)>', autocompletion=click_complete_for_zones)
+@click.argument('zonename', metavar='<zone name)>', shell_complete=click_complete_for_zones)
 @click.argument('name', metavar='<subdomain name>')
 @click.argument('targetname', metavar='<instance name|instance ID|bucket name:>')
 @click.option('--ttl', metavar='TTL', type=int, default=3600)
@@ -134,7 +134,7 @@ def name_zonecmd(params, zonename, name, targetname, ttl, weight):
 
 
 @zone_group.command("rm")
-@click.argument('zonename', metavar='<zone name)>', autocompletion=click_complete_for_zones)
+@click.argument('zonename', metavar='<zone name)>', shell_complete=click_complete_for_zones)
 @click.argument('name', metavar='<subdomain name>')
 @click.argument('type_str', default='A', metavar='[A(default)|NS|TXT|...]', type=click_global_dns_record_types)
 @click.option('--force', is_flag=True, help='actually delete a record')
@@ -179,7 +179,7 @@ def rm_zonecmd(params, zonename, name, type_str, force):
 @click.option('--argdoc', is_flag=True, help='Show available attributes in a web browser')
 @click.option('--attr', '-a', multiple=True, help='Attribute name(s).')
 @click.option('--allregions', is_flag=True, help='List for all regions.')
-@click.argument('zone_name_if_any', nargs=-1, metavar='<zone name>', autocompletion=click_complete_for_zones)
+@click.argument('zone_name_if_any', nargs=-1, metavar='<zone name>', shell_complete=click_complete_for_zones)
 @pass_global_parameters
 def list_zones(params, argdoc, verbose, attr, allregions, zone_name_if_any):
     """ list all zones hosted by Route53 """

@@ -184,7 +184,7 @@ def cp_bucketcmd(params, src, dst, reduced, lowaccess, onezone, contenttype, ove
                     if is_debugging:
                         print(f'{src_bucket=}')
                         print(f'{obj.key=}')
-                        print(f'{dest_path=}')
+                        print(f'{dest_pathdest_bucket=}')
                     if is_local_path_directory:
                         if is_debugging: print("LOCAL FILE=%s/" % os.path.basename(obj.key), file=sys.stderr)
                         s3.meta.client.download_file(src_bucket, obj.key, os.path.join(dest_path, obj.key))

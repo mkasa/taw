@@ -5,7 +5,7 @@ import sys
 
 depending_libraries = \
     [
-        'click>=6.6',
+        'click>=7',
         'boto3>=1.7.7',
         'tabulate>=0.7.7',
         'colorama==0.2.5',
@@ -24,7 +24,7 @@ else:
 
 setup(
         name='tiny-amazon-wrapper',
-        version='0.2.0',
+        version='0.2.1',
         packages=find_packages(),
         include_package_data=True,
         install_requires=depending_libraries,
