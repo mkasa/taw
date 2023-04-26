@@ -512,6 +512,8 @@ def list_for_all_regions(params, subargs, restype, func):
         """
     s = boto3.session.Session()
     if is_gnu_parallel_available():
+        if is_debugging:
+            print("INFO: GNU parallel is available. Using it.", file=sys.stderr)
         cmdlines = []
         import __main__
         for region in s.get_available_regions('ec2'):
@@ -521,6 +523,8 @@ def list_for_all_regions(params, subargs, restype, func):
         # print("===")
         parallel_subprocess_by_gnu_parallel(cmdlines)
     else:
+        if is_debugging:
+            print("INFO: GNU parallel is not available.", file=sys.stderr)
         params.output_noless = True
         is_first_region = True
         for region in s.get_available_regions('ec2'):
