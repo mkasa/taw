@@ -204,7 +204,10 @@ def ensure_credential(p):
         if have_config_file:
             if (3, 0) <= sys.version_info:
                 import configparser
-                configp = configparser.SafeConfigParser()
+                if sys.version_info <= (3, 10):
+                    configp = configparser.ConfigParser()
+                else:
+                    configp = configparser.SafeConfigParser()
             else:
                 import ConfigParser
                 configp = ConfigParser.SafeConfigParser()
@@ -1262,7 +1265,10 @@ def read_default_region_from_config(profile_name):
         return os.environ["AWS_DEFAULT_REGION"]
     if (3, 0) <= sys.version_info:
         import configparser
-        configp = configparser.SafeConfigParser()
+        if sys.version_info <= (3, 10):
+            configp = configparser.SafeConfigParser()
+        else:
+            configp = configparser.ConfigParser()
     else:
         import ConfigParser
         configp = ConfigParser.SafeConfigParser()
