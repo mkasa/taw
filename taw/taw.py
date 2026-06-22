@@ -7,7 +7,7 @@ import click
 from taw.util import *
 
 # constants
-_VERSION_STRING = "0.0.0"
+_VERSION_STRING = "0.3.1"
 
 
 # click decorator
@@ -25,7 +25,7 @@ pass_global_parameters = click.make_pass_decorator(GlobalParameters)
 # commands/subcommands
 @click.group(help="Tiny Amazon Wrapper")
 @click.version_option(_VERSION_STRING)
-@click.option('--region', '-r', envvar='AWS_DEFAULT_REGION', help='AWS region.', type=click.Choice(look_for_completion_region()))
+@click.option('--region', '-r', help='AWS region.', type=click.Choice(look_for_completion_region()))
 @click.option('--noheader', is_flag=True, help='Do not output the header line.')
 @click.option('--format', '-f', 'format_type', default='simple_with_color', help='Output format.', type=click.Choice(['csv', 'json', 'tsv', 'simple', 'simple_with_color']))
 @click.option('--noless', '-n', is_flag=True, help='Do not invoke less.')

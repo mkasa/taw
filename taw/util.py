@@ -1255,14 +1255,25 @@ def click_bash_completion_parse_profile_and_region(args):
 
 
 def read_default_region_from_config(profile_name):
-    """ read the default region from ~/.aws/config """
+    """ read the default region from ~/.aws/config.
+
+        When a profile is explicitly selected (profile_name is not None,
+        i.e. the user passed --profile/-p), the region configured for that
+        profile takes precedence over the AWS_DEFAULT_REGION environment
+        variable. Picking a profile expresses intent to operate on that
+        account, so its region should win over a globally-exported
+        AWS_DEFAULT_REGION (which would otherwise silently point taw at the
+        wrong region and show no resources).
+
+        When no profile is explicitly given, AWS_DEFAULT_REGION (if set)
+        still takes precedence, preserving the previous behavior.
+    """
+    explicit_profile = profile_name is not None
     if profile_name is None:
         if "AWS_PROFILE" in os.environ:
             profile_name = os.environ["AWS_PROFILE"]
         else:
             profile_name = 'default'
-    if "AWS_DEFAULT_REGION" in os.environ:
-        return os.environ["AWS_DEFAULT_REGION"]
     if (3, 0) <= sys.version_info:
         import configparser
         if sys.version_info <= (3, 10):
@@ -1270,13 +1281,25 @@ def read_default_region_from_config(profile_name):
         else:
             configp = configparser.ConfigParser()
     else:
-        import ConfigParser
-        configp = ConfigParser.SafeConfigParser()
+        import ConfigParser as configparser
+        configp = configparser.SafeConfigParser()
     configp.read(os.path.join(home_dir, ".aws", "config"))
     if profile_name == 'default':
         section_name = 'default'
     else:
         section_name = 'profile ' + profile_name
+    if explicit_profile:
+        # The profile's configured region overrides AWS_DEFAULT_REGION.
+        # Fall back to the environment variable only when the selected
+        # profile does not specify a region of its own.
+        try:
+            return configp.get(section_name, 'region')
+        except (configparser.NoSectionError, configparser.NoOptionError):
+            if "AWS_DEFAULT_REGION" in os.environ:
+                return os.environ["AWS_DEFAULT_REGION"]
+            raise
+    if "AWS_DEFAULT_REGION" in os.environ:
+        return os.environ["AWS_DEFAULT_REGION"]
     return configp.get(section_name, 'region')
 
 
