@@ -198,7 +198,7 @@ def cp_bucketcmd(params, src, dst, reduced, lowaccess, onezone, contenttype, ove
                     if src_path != '' and not fnmatch.fnmatch(obj.key, src_path): continue
                     matched_objects.append(obj)
                 if 0 < len(matched_objects):
-                    if dest_path != '' and 1 < len(matched_objcects):
+                    if dest_path != '' and 1 < len(matched_objects):
                         error_exit("You cannot specify the destination name if you specify multiple source files.")
                     for obj in matched_objects:
                         if contenttype:
