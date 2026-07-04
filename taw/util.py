@@ -1,6 +1,5 @@
 #!/usr/bin/env python3
 
-from __future__ import print_function
 import os, sys, click
 import subprocess, datetime, mimetypes
 import boto3
@@ -8,7 +7,6 @@ import tabulate, json
 import pyperclip, time, sqlite3, pickle, readline
 from termcolor import colored
 import re
-import six
 import dns.resolver
 
 
@@ -202,15 +200,8 @@ def ensure_credential(p):
     have_cred_file = os.path.exists(os.path.join(home_dir, ".aws", "credentials"))
     if param_region is None:
         if have_config_file:
-            if (3, 0) <= sys.version_info:
-                import configparser
-                if sys.version_info <= (3, 10):
-                    configp = configparser.ConfigParser()
-                else:
-                    configp = configparser.SafeConfigParser()
-            else:
-                import ConfigParser
-                configp = ConfigParser.SafeConfigParser()
+            import configparser
+            configp = configparser.ConfigParser()
             configp.read(config_file_path)
             section_name = 'default'
             if param_profile: section_name = 'profile ' + param_profile
@@ -221,7 +212,7 @@ def ensure_credential(p):
 by AWS_DEFAULT_REGION environment variable, or
 by ~/.aws/config
 """)
-    if not have_cred_file and not ('AWS_SECRET_ACCESS_KEY' in os.environ) and not have_config_file:
+    if not have_cred_file and 'AWS_SECRET_ACCESS_KEY' not in os.environ and not have_config_file:
         error_exit("""You must give a credential for EC2 by
 AWS_ACCESS_KEY_ID and AWS_SECRET_ACCESS_KEY,
 or by ~/.aws/credentials, or by ~/.aws/config.
@@ -253,7 +244,7 @@ region_name_to_region_nickname = {
         "af-south-1"     : "capetown",
         "me-south-1"     : "bahrain",
     }
-region_nickname_to_region_name = dict([(v, k) for k, v in six.iteritems(region_name_to_region_nickname)])
+region_nickname_to_region_name = dict([(v, k) for k, v in region_name_to_region_nickname.items()])
 
 
 def normalize_region_name(region_name, error_on_exit=True):
@@ -486,7 +477,7 @@ def multicolumn_tabulate(rows, header, coloring):
                 for func in coloring:
                     result = func(row)
                     if result is not None:
-                        for k, v in six.iteritems(result):
+                        for k, v in result.items():
                             if k != -1:
                                 color[k] = v
                             else:
@@ -592,7 +583,7 @@ def call_function_by_unambiguous_prefix(call_table, prefix_string, subargs):
         subargs is an argument to the callee
     """
     candidates = []
-    for k, v in six.iteritems(call_table):
+    for k, v in call_table.items():
         if k.startswith(prefix_string):
             candidates.append((k, v))
     if len(candidates) == 0:
@@ -917,10 +908,10 @@ def parse_protocol_port_string(prot_port_str):
                     else:
                         error_exit("Service name '%s' is not known" % arg_service_name)
             if 1 < len(hits):
-                n_tcp = len(filter(lambda x: x[0] == 'tcp', hits))
-                n_udp = len(filter(lambda x: x[0] == 'udp', hits))
+                n_tcp = len([x for x in hits if x[0] == 'tcp'])
+                n_udp = len([x for x in hits if x[0] == 'udp'])
                 if n_tcp == 1 and n_udp > 0:
-                    hits = filter(lambda x: x[0] == 'tcp', hits)
+                    hits = [x for x in hits if x[0] == 'tcp']
             if 1 < len(hits):
                 error_exit("Service name '%s' has multiple possibilities. Use numbers for specifying ports." % arg_service_name)
             port_arr[0] = hits[0][0]
@@ -1068,7 +1059,7 @@ def register_AMI_ID_to_local_database(do_not_open_browser):
                         ami_id = res.group(2)
                         region_id = None
                         if is_debugging: print("  Image %s at %s" % (ami_id, region_nickname))
-                        for k, v in six.iteritems(region_name_to_region_nickname):
+                        for k, v in region_name_to_region_nickname.items():
                             if re.search(v, region_nickname, re.I):
                                 region_id = k
                                 break
@@ -1152,7 +1143,7 @@ def update_completion_keywords(completion_keywords, cache_name):
     if profile_cache_dir is None: return
     with open(os.path.join(profile_cache_dir, cache_name), "w") as f:
         for record in completion_keywords:
-            for k, v in six.iteritems(record):
+            for k, v in record.items():
                 print("%s\t%s" % (k, v), file=f)
 
 
@@ -1274,15 +1265,8 @@ def read_default_region_from_config(profile_name):
             profile_name = os.environ["AWS_PROFILE"]
         else:
             profile_name = 'default'
-    if (3, 0) <= sys.version_info:
-        import configparser
-        if sys.version_info <= (3, 10):
-            configp = configparser.SafeConfigParser()
-        else:
-            configp = configparser.ConfigParser()
-    else:
-        import ConfigParser as configparser
-        configp = configparser.SafeConfigParser()
+    import configparser
+    configp = configparser.ConfigParser()
     configp.read(os.path.join(home_dir, ".aws", "config"))
     if profile_name == 'default':
         section_name = 'default'
@@ -1305,7 +1289,7 @@ def read_default_region_from_config(profile_name):
 
 def look_for_completion_region():
     possible_keywords = []
-    for k, v in six.iteritems(region_name_to_region_nickname):
+    for k, v in region_name_to_region_nickname.items():
         possible_keywords += [k, v]
     return possible_keywords
 
@@ -1326,8 +1310,6 @@ def wait_for_clipboard_to_update(minimum_size=0):
 def update_recommended_image_cache():
     """ Update the file that contains recommended AWS EC2 images (eg., RetHat Enterprise Linux, Amazon Linux, Cent OS, Ubuntu, etc.) """
     # NOTE: this is not (yet?) implemented.
-    ec2 = get_ec2_connection()
-    images = ec2.images.filter(Owners=['self'])
 
 
 def is_gnu_parallel_available():
@@ -1395,14 +1377,14 @@ def get_my_ip_address():
         hope that they will be available for longer time than other services
         I could think of.
     """
-    ns_ip = dns.resolver.query("ns1.google.com", "A")
+    ns_ip = dns.resolver.resolve("ns1.google.com", "A")
     if ns_ip is None or len(ns_ip) < 1:
         print_warning("Failed to determine the Google DNS server.")
         return None
     google_ns1_ip = str(ns_ip[0])
     resolver = dns.resolver.Resolver()
     resolver.nameservers = [google_ns1_ip]
-    answer = resolver.query("o-o.myaddr.l.google.com", "TXT")
+    answer = resolver.resolve("o-o.myaddr.l.google.com", "TXT")
     for record in answer:
         for txt_string in record.strings:
             return txt_string.decode('ascii')

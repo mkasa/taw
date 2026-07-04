@@ -87,8 +87,22 @@ $ taw instance terminate webserver01
 ```
 
 # Installation
-`python setup.py install` will install `taw` command.
+taw is packaged with [uv](https://docs.astral.sh/uv/). To install the `taw`
+command as an isolated tool:
+
+```bash
+uv tool install .          # from a checkout
+# or, for development:
+uv sync                    # create the venv + install taw in editable mode
+uv run taw --help          # run without activating the venv
+```
+
 It is not (yet) available in PyPI, but it will appear soon.
+
+`aws configure` is no longer bundled (taw dropped the heavyweight `awscli`
+dependency). If you need it to set up credentials, install it separately, e.g.
+`uv tool install awscli` or `brew install awscli`. taw itself reads the standard
+`~/.aws/credentials` / `~/.aws/config` files, so any tool that writes them works.
 
 First you need to setup your credential (ID/password).
 You can set it up in [the same way as AWS Command Line

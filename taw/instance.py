@@ -1,14 +1,10 @@
 #!/usr/bin/env python3
 
-from __future__ import print_function
-from __future__ import absolute_import
 import os, click
 from taw.list import *
 from taw.util import *
 from taw.taw import *  # This must be the end of imports
-from six.moves import input
 import shlex
-import six
 
 
 # =======================
@@ -120,7 +116,7 @@ def change_instance_type_instancecmd(params, hostname, new_instance_name):
 @pass_global_parameters
 def set_host_name(params, hostname):
     """ set or fix the host name of a specified host """
-    instance = convert_host_name_to_instance(hostname)
+    convert_host_name_to_instance(hostname)  # validate that the host exists
     import __main__
     cmdline = [__main__.__file__] + params.global_opt_str
     cmdline += ['ssh', hostname, '--', 'sudo', 'sh', '-c', shlex.quote("echo %s > /etc/hostname" % hostname)]
@@ -131,7 +127,7 @@ def set_host_name(params, hostname):
     cmdline = [__main__.__file__] + params.global_opt_str
     cmdline += ['ssh', hostname, '--', 'cat', '/etc/hosts']
     etc_hosts = subprocess.check_output(cmdline)
-    if len(list(filter(lambda x: re.search(hostname, x), six.text_type(etc_hosts).split("\\n")))) <= 0: # TODO: this needs to be more sophisticated ...
+    if len(list(filter(lambda x: re.search(hostname, x), str(etc_hosts).split("\\n")))) <= 0: # TODO: this needs to be more sophisticated ...
         print_info("/etc/hosts does not contain the host '%s'" % hostname)
         print_info("Try to add IP for the host...")
         cmdline = [__main__.__file__] + params.global_opt_str
@@ -196,7 +192,7 @@ def createimage_instancecmd(params, hostname, name, description, options):
             noreboot = True
             continue
 
-    image = instance.create_image(
+    instance.create_image(
             Name=name,
             Description=description,
             BlockDeviceMappings=block_mapping,
@@ -218,7 +214,7 @@ def ask_instance_name_interactively(ctx, params, name):
                 continue
             if name == '': continue
             name = new_name
-        if not re.match("^[\w\d]+$", name):
+        if not re.match(r"^[\w\d]+$", name):
             print_warning("Name '%s' is invalid (contains illegal character(s))" % name)
             name = None
             continue
@@ -295,7 +291,7 @@ def ask_ami_id_interactively(ctx, params, ami_id):
             if new_ami_id == '': continue
             ami_id = new_ami_id
         # conver name to ami
-        if not re.match('^ami-([\d\w]+)$', ami_id):
+        if not re.match(r'^ami-([\d\w]+)$', ami_id):
             my_region = get_aws_region()
             candidate_ami = []
             for sql_row in conn.execute("SELECT * FROM ami_ids;"):
@@ -319,7 +315,7 @@ def ask_ami_id_interactively(ctx, params, ami_id):
                 ami_id = None
                 continue
             ami_name, ami_id = candidate_ami[0]
-        if not re.match('^ami-([\d\w]+)$', ami_id):
+        if not re.match(r'^ami-([\d\w]+)$', ami_id):
             print_warning("AMI ID '%s' does not look like an AMI ID" % ami_id)
             continue
         break
@@ -586,7 +582,7 @@ def launch_instancecmd(ctx, params, name, instancetype, amiid, keyname, vpc, sub
     subnet = ask_subnet_interactively(ctx, params, vpc, subnet)
     securitygroup = ask_security_group_interactively(ctx, params, vpc, subnet, list(securitygroup))
     if enableapitermination:
-        disableApiTermination = False
+        disableapitermination = False
     else:
         disableapitermination = ask_if_not_set("Disable API termination? If set, you cannot DIRECTLY terminate the instance from taw.", disableapitermination)
     if noebsoptimized:
@@ -731,7 +727,6 @@ def name_instancecmd(params, instanceid, hostname):
             print("    " + i)
     if instance.public_ip_address is not None and all([i.find(instance.public_ip_address) == -1 for i in etc_hosts_lines]):
         line_to_add = "%s %s" % (instance.public_ip_address, hostname)
-        new_etc_hosts = [line_to_add] + etc_hosts_lines
         res = ssh_like_call(params, 'sudo', instanceid, ['-t', 'perl', '-i', '-pe', '\'if($.==1){print"' + line_to_add + '\\n"}\'', '/etc/hosts'])
         print_info("Added an entry '%s' to /etc/hosts" % line_to_add)
     else:

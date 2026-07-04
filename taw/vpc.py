@@ -1,7 +1,5 @@
 #!/usr/bin/env python3
 
-from __future__ import print_function
-from __future__ import absolute_import
 import click
 from taw.list import *
 from taw.util import *
@@ -59,7 +57,6 @@ def rm_vpccmd(params, vpc, force):
 @pass_global_parameters
 def name_vpccmd(param, vpc_id, name):
     """ name a specified VPC """
-    ec2 = get_ec2_connection()
     vpc = convert_vpc_name_to_vpc(vpc_id)
     if is_debugging: print(vpc)
     vpc.create_tags(Tags=[{'Key': 'Name', 'Value': name}])

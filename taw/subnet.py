@@ -1,7 +1,5 @@
 #!/usr/bin/env python3
 
-from __future__ import print_function
-from __future__ import absolute_import
 import click
 from taw.util import *
 from taw.taw import *  # This must be the end of imports
@@ -24,7 +22,6 @@ def subnet_group(params):
 @pass_global_parameters
 def create_subnetcmd(params, name, vpc, cidr, az):
     """ create a subnet with a specified block of CIDR """
-    ec2 = get_ec2_connection()
     vpc = convert_vpc_name_to_vpc(vpc)
     if not is_private_cidr(cidr):
         error_exit("CIDR block %s is not a private address block" % cidr)
@@ -58,7 +55,6 @@ def rm_subnetcmd(params, subnet, force):
 @pass_global_parameters
 def name_subnetcmd(params, subnet_id, name):
     """ name a specified subnet """
-    ec2 = get_ec2_connection()
     subnet = convert_subnet_name_to_subnet(subnet_id)
     if is_debugging: print(subnet)
     subnet.create_tags(Tags=[{'Key': 'Name', 'Value': name}])

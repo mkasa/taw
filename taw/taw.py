@@ -1,13 +1,15 @@
 #!/usr/bin/env python3
 
-from __future__ import print_function
-from __future__ import absolute_import
+from importlib.metadata import PackageNotFoundError, version
 import colorama
 import click
 from taw.util import *
 
 # constants
-_VERSION_STRING = "0.3.1"
+try:
+    _VERSION_STRING = version("tiny-amazon-wrapper")
+except PackageNotFoundError:  # running from a source tree without an install
+    _VERSION_STRING = "0.0.0"
 
 
 # click decorator

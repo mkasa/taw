@@ -1,7 +1,5 @@
 #!/usr/bin/env python3
 
-from __future__ import print_function
-from __future__ import absolute_import
 import os, sys, click
 import fnmatch, glob
 from taw.util import *

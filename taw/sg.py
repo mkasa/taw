@@ -1,7 +1,5 @@
 #!/usr/bin/env python3
 
-from __future__ import print_function
-from __future__ import absolute_import
 import click
 from taw.util import *
 from taw.taw import *  # This must be the end of imports
@@ -22,7 +20,6 @@ def sg_group(params):
 @pass_global_parameters
 def rm_sgcmd(params, sg, force):
     """ remove security group(s) with specified name(s)  """
-    ec2 = get_ec2_connection()
     sg = convert_sg_name_to_sg(sg[0])
     print("Security group %s (%s)" % (sg.id, extract_name_from_tags(sg.tags)))
     if force:
@@ -40,7 +37,6 @@ def rm_sgcmd(params, sg, force):
 @pass_global_parameters
 def allow_sgcmd(params, sg, protocol_str, cidr, egress, force):
     """ add another rule to pass a specified firewall """
-    ec2 = get_ec2_connection()
     sg_obj = convert_sg_name_to_sg(sg)
     protocol, target_port_low, target_port_high = parse_protocol_port_string(protocol_str)
     if is_debugging:
@@ -73,7 +69,6 @@ def allow_sgcmd(params, sg, protocol_str, cidr, egress, force):
 @pass_global_parameters
 def revoke_sgcmd(params, sg, protocol_str, cidr, egress, force):
     """ revoke a rule to pass a specified firewall """
-    ec2 = get_ec2_connection()
     sg_obj = convert_sg_name_to_sg(sg)
     protocol, target_port_low, target_port_high = parse_protocol_port_string(protocol_str)
     if is_debugging:

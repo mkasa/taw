@@ -1,8 +1,6 @@
 #!/usr/bin/env python3
 
-from __future__ import print_function
-from __future__ import absolute_import
-import os, sys, subprocess, re, datetime, glob, six
+import os, sys, subprocess, re, datetime, glob
 import click, boto3, fnmatch
 import sqlite3
 from taw.util import *
@@ -208,8 +206,6 @@ def list_cmd(params, restype, verbose, argdoc, attr, subargs, allregions):
         ec2 = get_ec2_connection()
         vpcs = ec2.vpcs.all()
         if sg_if_any:
-            sg_id_likes = [i for i in sg_if_any if i.startswith("sg-")]
-            sg_name_likes = [i for i in sg_if_any if not i.startswith("sg-")]
             sg_ids = ec2.security_groups.filter(Filters=[{'Name': 'group-id', 'Values': list(sg_if_any)}])
             sg_names = ec2.security_groups.filter(Filters=[{'Name': 'group-name', 'Values': list(sg_if_any)}])
             sg_byvpc = ec2.security_groups.filter(Filters=[{'Name': 'vpc-id', 'Values': list(sg_if_any)}])
@@ -265,7 +261,7 @@ def list_cmd(params, restype, verbose, argdoc, attr, subargs, allregions):
                         name = 'public'
                     elif uri == 'http://acs.amazonaws.com/groups/global/AuthenticatedUsers':
                         name = 'others'
-                if not (name in id_to_perm_bits): id_to_perm_bits[name] = 0
+                if name not in id_to_perm_bits: id_to_perm_bits[name] = 0
                 id_to_perm_bits[name] |= pstr_to_octal_bits(perm)
             return id_to_perm_bits
         if argdoc:
@@ -308,7 +304,7 @@ def list_cmd(params, restype, verbose, argdoc, attr, subargs, allregions):
                     row = [f(getattr(obj, i)) for _, i, _, f in list_columns]  # noqa: F812
                     if verbose:
                         id_to_perm_bits = grants_to_id_to_perm_bits(obj.Acl().grants)
-                        row.append(", ".join([k + "(" + perm_bit_to_str(v) + ")" for k, v in six.iteritems(id_to_perm_bits)]))
+                        row.append(", ".join([k + "(" + perm_bit_to_str(v) + ")" for k, v in id_to_perm_bits.items()]))
                     rows.append(row)
             except AttributeError as e:
                 error_exit(str(e) + "\nNo such attribute.\nTry 'taw list --argdoc' to see all attributes.")
@@ -326,7 +322,7 @@ def list_cmd(params, restype, verbose, argdoc, attr, subargs, allregions):
                     bucket_name = b.name
                     row = [f(getattr(b, i)) for _, i, _, f in list_columns]
                     id_to_perm_bits = grants_to_id_to_perm_bits(b.Acl().grants)
-                    row.append(", ".join([k + "(" + perm_bit_to_str(v) + ")" for k, v in six.iteritems(id_to_perm_bits)]))
+                    row.append(", ".join([k + "(" + perm_bit_to_str(v) + ")" for k, v in id_to_perm_bits.items()]))
                     if verbose:
                         # NOTE: should do better in the future.
                         #       see https://github.com/boto/boto3/issues/292
@@ -429,7 +425,6 @@ def list_cmd(params, restype, verbose, argdoc, attr, subargs, allregions):
         """ List instances.
             This is a shorthand for 'taw instance list' but has fewer options. Use 'taw instance list' where possible.
             """
-        s = boto3.session.Session()
         import __main__
         cmdline = [__main__.__file__] + params.global_opt_str + ['instance', 'list'] + list(subargs)
         subprocess.check_call(cmdline)
@@ -437,7 +432,6 @@ def list_cmd(params, restype, verbose, argdoc, attr, subargs, allregions):
     def list_image(dummy_argument):
         """ List images.
             """
-        s = boto3.session.Session()
         import __main__
         cmdline = [__main__.__file__] + params.global_opt_str + ['image', 'list'] + list(subargs)
         subprocess.check_call(cmdline)
@@ -445,7 +439,6 @@ def list_cmd(params, restype, verbose, argdoc, attr, subargs, allregions):
     def list_zones(dummy_argument):
         """ List Route53 zones.
             """
-        s = boto3.session.Session()
         import __main__
         cmdline = [__main__.__file__] + params.global_opt_str + ['zone', 'list'] + list(subargs)
         subprocess.check_call(cmdline)

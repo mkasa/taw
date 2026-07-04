@@ -1,7 +1,5 @@
 #!/usr/bin/env python3
 
-from __future__ import print_function
-from __future__ import absolute_import
 import click
 from taw.util import *
 from taw.taw import *  # This must be the end of imports
@@ -59,7 +57,7 @@ def associate_ipcmd(params, eip_id, hostname):
     if len(eips) <= 0: error_exit("No such allocation ID ('%s')" % eip_id)
     instance = convert_host_name_to_instance(hostname)
     ec2_client = get_ec2_client()
-    addr = ec2_client.associate_address(InstanceId=instance.id, AllocationId=eip_id)
+    ec2_client.associate_address(InstanceId=instance.id, AllocationId=eip_id)
 
 
 @ip_group.command("disassociate")
@@ -71,7 +69,7 @@ def disassociate_ipcmd(params, association_id):
     eips = list(ec2.vpc_addresses.filter(Filters=[{'Name': 'association-id', 'Values': [association_id]}]))
     if len(eips) <= 0: error_exit("No such association ID ('%s')" % association_id)
     ec2_client = get_ec2_client()
-    addr = ec2_client.disassociate_address(AssociationId=association_id)
+    ec2_client.disassociate_address(AssociationId=association_id)
 
 
 @ip_group.command("name")
@@ -92,7 +90,6 @@ def name_ipcmd(param, eip_id, name):
 @pass_global_parameters
 def ip_ipcmd(param, name):
     """ show an IP associated with a specified Elastic IP """
-    ec2 = get_ec2_connection()
     eips = convert_eip_name_to_eip_id(name)
     for e in eips:
         print(e.public_ip)
