@@ -49,7 +49,7 @@ Shell completion uses Click's native mechanism — run `taw completion` and it p
 
 ## Conventions & gotchas
 
-- **Version is single-sourced in `pyproject.toml`** (`version = "0.3.0"`). `taw.py` reads it at runtime via `importlib.metadata.version("tiny-amazon-wrapper")` for `--version`, falling back to `"0.0.0"` only when run from an uninstalled source tree. Bump the version in `pyproject.toml`.
+- **Version is single-sourced in `pyproject.toml`** (`version = "1.0.0"`). `taw.py` reads it at runtime via `importlib.metadata.version("tiny-amazon-wrapper")` for `--version`, falling back to `"0.0.0"` only when run from an uninstalled source tree. Bump the version in `pyproject.toml`.
 - **Python 3.10+ only.** The old Python-2 scaffolding (`from __future__`, `six`, `ConfigParser` fallbacks) has been removed; `requires-python = ">=3.10"` (3.9 was dropped because botocore pins the vulnerable `urllib3 1.26.x` there). Don't reintroduce compat shims — use plain 3.x idioms and `import configparser` directly.
 - **Errors exit, they don't raise.** Use `error_exit(msg)` (prints red, `sys.exit(2)`), `print_warning`, `print_info` for user-facing messaging rather than exceptions — matches how the whole codebase reports problems.
 - **Linting is tuned, not strict.** `[tool.ruff.lint]` deliberately ignores the project's idioms (star imports `F403/F405`, semicolon/one-line imports, bare `except:`), but keeps the high-signal rules live — unused imports/locals (`F401`/`F841`), undefined names in non-star modules, and invalid regex escapes (`W605`). Keep new code passing `uv run ruff check .`.

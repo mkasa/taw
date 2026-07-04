@@ -1,6 +1,6 @@
 [project]
 name = "tiny-amazon-wrapper"
-version = "0.3.1"
+version = "1.0.0"
 description = "Tiny Amazon ec2 Wrapper — a simplified command-line interface for Amazon EC2, S3, and Route 53"
 readme = "README.md"
 license = { file = "LICENSE" }
