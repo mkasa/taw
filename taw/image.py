@@ -79,10 +79,8 @@ def chmod_amicmd(params, ami_id, user):
 def name_amicmd(param, ami_id, name):
     """ name a specified AMI """
     ec2 = get_ec2_connection()
-    eips = list(ec2.images.filter(Filters=[{'Name': 'image-id', 'Values': [ami_id]}]))
-    if len(eips) <= 0: error_exit("No such association ID ('%s')" % ami_id)
-    for eip in eips:
-        ec2.create_tags(Resources=[ami_id], Tags=[{'Key': 'Name', 'Value': name}])
+    image_id = convert_ami_name_to_ami(ami_id)
+    ec2.create_tags(Resources=[image_id], Tags=[{'Key': 'Name', 'Value': name}])
 
 
 @image_group.command("list", add_help_option=False, context_settings=dict(ignore_unknown_options=True))
