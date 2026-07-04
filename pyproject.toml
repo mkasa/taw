@@ -5,7 +5,7 @@ description = "Tiny Amazon ec2 Wrapper — a simplified command-line interface f
 readme = "README.md"
 license = { file = "LICENSE" }
 authors = [{ name = "Masahiro Kasahara" }]
-requires-python = ">=3.9"
+requires-python = ">=3.10"
 keywords = ["aws", "ec2", "s3", "route53", "cli"]
 classifiers = [
     "Environment :: Console",
@@ -45,7 +45,7 @@ packages = ["taw"]
 
 [tool.ruff]
 line-length = 200
-target-version = "py39"
+target-version = "py310"
 
 [tool.ruff.lint]
 # Keep pyflakes (unused imports/vars) plus invalid-escape detection, but don't
