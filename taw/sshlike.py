@@ -81,7 +81,7 @@ def scp_cmd(params, src, dst, key_file_path, preserve_flag, batch_flag, compress
     if compression_flag: args.append('-C')
     if cypher: args += ['-c', cypher]
     if limit_bandwidth: args += ['-l', limit_bandwidth]
-    if port: args += ['-P', port]
+    if port: args += ['-P', str(port)]
     if recursive_flag: args.append('-r')
     if quiet_flag: args.append('-q')
     (dest_user, dest_host, dest_path) = decompose_rpath(dst)
