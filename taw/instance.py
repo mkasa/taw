@@ -569,10 +569,6 @@ def estimate_root_accout_name_from_ami_name(ami_name):
 def launch_instancecmd(ctx, params, name, instancetype, amiid, keyname, vpc, subnet, count, ebsoptimized, noebsoptimized, disableapitermination, enableapitermination, securitygroup, shutdownbehavior, rootaccount, ami_name):
     """ Launch a new instance interactively """
 
-    try:
-        count = int(count)
-    except:
-        error_exit(count + " is not an integer")
     (amiid, new_ami_name) = ask_ami_id_interactively(ctx, params, amiid)
     ami_name = ami_name or new_ami_name
     name = ask_instance_name_interactively(ctx, params, name)
