@@ -143,7 +143,7 @@ def rm_zonecmd(params, zonename, name, type_str, force):
     zone_id = convert_zone_name_to_zone_id(zonename)
     name = complete_subdomain_name(name, zonename)
     zone_to_delete = None
-    for zone in r53.list_resource_record_sets(HostedZoneId=zone_id)['ResourceRecordSets']:
+    for zone in get_all_resource_record_sets(r53, zone_id):
         if zone['Name'] == name and zone['Type'] == type_str:
             zone_to_delete = zone
             break
@@ -203,14 +203,14 @@ def list_zones(params, argdoc, verbose, attr, allregions, zone_name_if_any):
         for v in attr: list_columns.append((True, v, v, ident))
         header = [x[2] for x in list_columns]; rows = []
         r53 = get_r53_connection()
-        for zone in r53.list_resource_record_sets(HostedZoneId=zone_id)['ResourceRecordSets']:
+        for zone in get_all_resource_record_sets(r53, zone_id):
             row = [f(zone[i]) for _, i, _, f in list_columns]
             rows.append(row)
     else:
         completion_keywords = []
         r53 = get_r53_connection()
         header = ['Name', 'Comment', 'IsPrivate', 'RecordSetCount']; rows = []
-        for zone in r53.list_hosted_zones()['HostedZones']:
+        for zone in get_all_hosted_zones(r53):
             config = zone['Config']
             row = [zone['Name'], config['Comment'] if 'Comment' in config else '',
                    config['PrivateZone'] if 'PrivateZone' in config else '', zone['ResourceRecordSetCount']]

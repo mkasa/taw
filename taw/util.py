@@ -815,11 +815,32 @@ def ssh_like_call(params, command_name, hostname_or_instance_id, command_args, r
         return None
 
 
+def get_all_hosted_zones(r53):
+    """ return all Route53 hosted zones, following pagination.
+        list_hosted_zones() returns at most 100 zones per call, so a raw
+        call silently drops zones beyond the first page.
+    """
+    zones = []
+    for page in r53.get_paginator('list_hosted_zones').paginate():
+        zones += page['HostedZones']
+    return zones
+
+
+def get_all_resource_record_sets(r53, zone_id):
+    """ return all resource record sets in a zone, following pagination.
+        list_resource_record_sets() returns at most 100 records per call.
+    """
+    records = []
+    for page in r53.get_paginator('list_resource_record_sets').paginate(HostedZoneId=zone_id):
+        records += page['ResourceRecordSets']
+    return records
+
+
 def convert_zone_name_to_zone_id(zone_name, error_on_exit=True):
     """ convert an Route53 zone name to the corresponding zone ID """
     if zone_name is not None and not zone_name.endswith('.'): zone_name += '.'
     r53 = get_r53_connection()
-    possible_zone_ids = [i['Id'] for i in r53.list_hosted_zones()['HostedZones'] if i['Name'] == zone_name]
+    possible_zone_ids = [i['Id'] for i in get_all_hosted_zones(r53) if i['Name'] == zone_name]
     if 0 >= len(possible_zone_ids):
         if error_on_exit: error_exit("No such zone '%s'" % zone_name)
         return None
