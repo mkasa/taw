@@ -755,7 +755,7 @@ def convert_ami_name_to_ami(possible_ami_id, error_on_exit=True):
         if len(images) <= 0:
             if error_on_exit: error_exit("Cannot find an AMI ID '%s'" % possible_ami_id)
             return None
-        return images[0]
+        return images[0].id
     images = list(ec2.images.filter(Filters=[{'Name': 'name', 'Values': [possible_ami_id]}]))
     if len(images) <= 0:
         if error_on_exit: error_exit("Cannot find an AMI '%s'" % possible_ami_id)
